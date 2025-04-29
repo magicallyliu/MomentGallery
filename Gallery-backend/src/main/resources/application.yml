@@ -1,0 +1,38 @@
+server:
+  port: 8982
+  servlet:
+    context-path: /api  #指定上下文路径
+spring:
+  application:
+    name: Gallery-backend  #项目名称
+  # 数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/Gallery8982
+    username: root
+    password: root
+
+mybatis-plus:
+  configuration:
+    # MyBatis 配置
+    map-underscore-to-camel-case: false  #将下划线转换为驼峰式语法 -- true(转换)
+    # 仅在开发环境打印日志
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #标准日志
+  global-config:
+    db-config:
+      #逻辑删除 (并未真正的删除, 仅为标记删除)
+      logic-delete-field: isDeleted  # 队列名
+      logic-delete-value: 1 #指定为1 表示逻辑删除了(也是默认值)
+      logic-not-delete-value: 0 #指定为0 表示逻辑未删除(也是默认值)
+
+#接口文档注释
+knife4j:
+  enable: true # 是否开启接口文档
+  openapi:
+    title: 接口文档 # 接口文档的标题
+    version: v1.0 #接口文档标注的版本号
+    group:
+      default:
+        api-rule: package #安装包扫描
+        api-rule-resources: #扫描包的位置
+          - com.liuh.gallerybackend.controller
