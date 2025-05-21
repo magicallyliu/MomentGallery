@@ -9,7 +9,6 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @MapperScan("com.liuh.gallerybackend.mapper")
 @EnableAspectJAutoProxy(exposeProxy = true)
 public class GalleryBackendApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(GalleryBackendApplication.class, args);
     }

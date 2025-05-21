@@ -15,6 +15,7 @@ import lombok.Data;
 @Data
 public class PageRequest {
 
+    public static final String DESC = "descend";
     /**
      * 当前页号
      */
@@ -26,8 +27,13 @@ public class PageRequest {
     private int pageSize = 10;
 
     /**
-     * 排序字段 (默认升序)
+     * 排序字段
+     */
+    private String sortField;
+
+    /**
+     * 排序方式(默认升序)
      * 设置为降序
      */
-    private String sortField = "descend";
+    private String sortOrder = DESC;
 }
