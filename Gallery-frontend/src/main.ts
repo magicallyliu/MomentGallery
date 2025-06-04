@@ -4,6 +4,10 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 
+//全局权限管理
+import "@/access";
+
+
 // 全局注册
 import Antd from "ant-design-vue";
 import "ant-design-vue/dist/reset.css";
