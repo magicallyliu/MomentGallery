@@ -196,7 +196,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     /**
-     * 用于对用户密码的加密
+     * 用于对用户密码的加密1
      *
      * @param userPassword 需要加密的密码
      * @return 加密之后的密码
@@ -257,6 +257,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
                 .collect(Collectors.toList()); //转换为其他形式
     }
 
+
     /**
      * 用户查询 -- 获取查询条件
      * @param userQueryRequest 查询所需要的表
@@ -295,6 +296,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         userQueryWrapper.orderBy(StrUtil.isNotEmpty(sortField),
                 sortOrder.equals("ascend"), sortField);
         return userQueryWrapper;
+    }
+
+    /**
+     * 判断是否为管理员
+     *
+     * @param user 需要验证的用户名
+     * @return
+     */
+    @Override
+    public boolean isAdmin(User user) {
+        //用户存在并且为管理员
+        return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
     }
 
 

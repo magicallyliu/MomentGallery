@@ -91,4 +91,12 @@ public interface UserService extends IService<User> {
      * @return 脱敏成功的信息
      */
     List<UserVO> getUserVOList(List<User> userList);
+
+    /**
+     * 判断是否为管理员
+     *
+     * @param user
+     * @return
+     */
+    boolean isAdmin(User user);
 }

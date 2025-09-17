@@ -11,6 +11,10 @@ spring:
     url: jdbc:mysql://localhost:3306/MomentGallery
     username: root
     password: root
+  #    最大文件上传大小
+  servlet:
+    multipart:
+      max-file-size: 10MB
 
 mybatis-plus:
   configuration:
@@ -36,3 +40,7 @@ knife4j:
         api-rule: package #安装包扫描
         api-rule-resources: #扫描包的位置
           - com.liuh.gallerybackend.controller
+
+#对象存储配置
+cos:
+  cli

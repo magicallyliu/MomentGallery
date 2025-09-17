@@ -57,7 +57,7 @@ const loginUserStore = useLoginUserStore()
 const handleSubmit = async (values: any) => {
   try {
     const res = await userLoginUsingPost(values)
-    //正常响应, 并且状态码为0
+    //正常响应, 并且状态码为20001
     //登录成功, 将登录状态保存到全局状态
     if (res.data.code === 20001 && res.data.data) {
       // 同步调用
@@ -75,10 +75,10 @@ const handleSubmit = async (values: any) => {
       })
     } else {
       //登录失败
-      message.error('登录失败11, ' + res.data.message)
+      message.error('登录失败, ' + res.data.message)
     }
   } catch (e) {
-    message.error(`登录失败12, ` + e.message)
+    message.error(`登录失败, ` + e.message)
   }
 }
 </script>
