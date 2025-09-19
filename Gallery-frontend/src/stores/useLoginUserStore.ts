@@ -20,7 +20,7 @@ export const useLoginUserStore = defineStore('loginUser', () => {
     //   loginUser.value = { userName: '测试用户', id: 1 }
     // }, 3000)
     const res = await getLoginUserUsingGet()
-    //正常响应, 并且状态码为0
+    //正常响应, 并且状态码为20001
     if (res.data.code === 20001 && res.data.data) {
       loginUser.value = res.data.data
     }

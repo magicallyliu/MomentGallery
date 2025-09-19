@@ -82,7 +82,7 @@ public class PictureController {
      * @return
      */
     @PostMapping("/delete")
-    public BaseResponse<Boolean> deletePicture(@RequestParam DeleteRequest deleteRequest, HttpServletRequest request) {
+    public BaseResponse<Boolean> deletePicture(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         //请求删除的参数为空, 或者id不存在
         if (deleteRequest == null || deleteRequest.getId() <=0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -103,7 +103,7 @@ public class PictureController {
 
         //在数据库中删除该图片
         boolean removeById = pictureService.removeById(id);
-        ThrowUils.throwIf(removeById, ErrorCode.OPERATION_ERROR,"删除失败");
+        ThrowUils.throwIf(!removeById, ErrorCode.OPERATION_ERROR,"删除失败");
         return ResultUtils.success(true);
     }
 
@@ -182,6 +182,10 @@ public class PictureController {
     @PostMapping("/list/page")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<Picture>> listPictureByPage(@RequestBody PictureQueryRequest pictureQueryRequest) {
+        //参数不存在则不执行查询
+        ThrowUils.throwIf(pictureQueryRequest == null,
+                ErrorCode.PARAMS_ERROR, "分页查询参数错误");
+
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
         // 查询数据库
@@ -197,7 +201,7 @@ public class PictureController {
      * @return
      */
     @PostMapping("/list/page/vo")
-    public BaseResponse<Page<PictureVO>> listPictureVOByPage(@RequestBody PictureQueryRequest pictureQueryRequest,
+    public BaseResponse<Page<PictureVO>> listPictureVoByPage(@RequestBody PictureQueryRequest pictureQueryRequest,
                                                              HttpServletRequest request) {
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
@@ -252,8 +256,8 @@ public class PictureController {
     @GetMapping("/tag_category")
     public BaseResponse<PictureTagCategory> listPictureTagCategory() {
         PictureTagCategory pictureTagCategory = new PictureTagCategory();
-        List<String> tagList = Arrays.asList("热门", "搞笑", "生活", "高清", "艺术", "校园", "背景", "简历", "创意");
-        List<String> categoryList = Arrays.asList("模板", "电商", "表情包", "素材", "海报");
+        List<String> tagList = Arrays.asList("测试","热门", "搞笑", "生活", "高清", "艺术", "校园", "背景", "简历", "创意");
+        List<String> categoryList = Arrays.asList("测试","模板", "电商", "表情包", "素材", "海报");
         pictureTagCategory.setTagList(tagList);
         pictureTagCategory.setCategoryList(categoryList);
         return ResultUtils.success(pictureTagCategory);

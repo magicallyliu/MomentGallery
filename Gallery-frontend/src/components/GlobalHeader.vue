@@ -1,7 +1,7 @@
 <template>
   <div id="globalHeader">
     <!--wrop="false" 取消自动换行-->
-    <a-row :wrop="false">
+    <a-row :wrap="false">
       <a-col flex="150px">
         <!--   图标和名称     -->
         <router-link to="/">
@@ -81,6 +81,11 @@ const originItems = [
     key: '/admin/userManage',
     label: '用户管理',
     title: '用户管理',
+  },
+  {
+    key: '/admin/pictureManage',
+    label: '图片管理',
+    title: '图片管理',
   },
 
 ]

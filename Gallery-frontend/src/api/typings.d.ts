@@ -73,11 +73,6 @@ declare namespace API {
 
   type Data = true
 
-  type deletePictureUsingPOSTParams = {
-    /** deleteRequest */
-    deleteRequest: string
-  }
-
   type DeleteRequest = {
     id?: number
   }
