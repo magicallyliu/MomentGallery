@@ -6,7 +6,10 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
+import com.liuh.gallerybackend.model.dto.file.UploadPictureResult;
 import com.liuh.gallerybackend.model.dto.picture.PictureQueryRequest;
+import com.liuh.gallerybackend.model.dto.picture.PictureReviewRequest;
+import com.liuh.gallerybackend.model.dto.picture.PictureUploadByBatchRequest;
 import com.liuh.gallerybackend.model.dto.picture.PictureUploadRequest;
 import com.liuh.gallerybackend.model.dto.user.UserQueryRequest;
 import com.liuh.gallerybackend.model.entity.Picture;
@@ -27,12 +30,12 @@ public interface PictureService extends IService<Picture> {
     /**
      * 图片的上传
      *
-     * @param multipartFile        前端上传的文件
-     * @param pictureUploadRequest 图片的编码
+     * @param inputSource        输入源
+     * @param pictureUploadRequest 图片的唯一标识
      * @param user                 用户信息, 用于确定用户的 权限
      * @return 脱敏后的图片信息
      */
-    PictureVO uploadPicture(MultipartFile multipartFile,
+    PictureVO uploadPicture(Object inputSource,
                             PictureUploadRequest pictureUploadRequest,
                             User user);
 
@@ -65,4 +68,28 @@ public interface PictureService extends IService<Picture> {
      * @param picture
      */
     void validPicture(Picture picture);
+
+    /**
+     * 图片审核
+     *
+     * @param pictureReviewRequest 图片审核需要的信息
+     * @param user                 审核人
+     */
+    void doPictureReview(PictureReviewRequest pictureReviewRequest, User user);
+
+    /**
+     * 填充图片审核参数
+     *
+     * @param picture
+     * @param user
+     */
+    void fillReviewParams(Picture picture, User user);
+
+    /**
+     *   批量抓取创建的图片
+     * @param pictureUploadByBatchRequest  批量抓取的图片
+     * @param user                          用户信息
+     * @return 返回成功的图片数量
+     */
+    Integer uploadPictureByBatch(PictureUploadByBatchRequest  pictureUploadByBatchRequest, User user);
 }
