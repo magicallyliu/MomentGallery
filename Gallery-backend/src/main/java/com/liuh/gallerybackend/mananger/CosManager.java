@@ -1,9 +1,9 @@
 package com.liuh.gallerybackend.mananger;
 
+import cn.hutool.core.io.FileUtil;
 import com.liuh.gallerybackend.config.CosClientConfig;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.exception.CosClientException;
-import com.qcloud.cos.exception.CosServiceException;
 import com.qcloud.cos.model.COSObject;
 import com.qcloud.cos.model.GetObjectRequest;
 import com.qcloud.cos.model.PutObjectRequest;
@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @Author LiuH
@@ -71,8 +73,62 @@ public class CosManager {
         // 1 表示返回原图信息
         //参考: https://cloud.tencent.com/document/product/436/55377
         picOperations.setIsPicInfo(1);
+
+
+        //图片处理规则
+        List<PicOperations.Rule> rules = new ArrayList<>();
+        //图片压缩(转换为webp 格式)
+        //去除文件地址后缀
+        // https://moment-gallery-1353804205.cos.ap-guangzhou.myqcloud.com//public/1920102552364191745/2025-09-21_BRv2GNdMFeOo3GvN.
+        //加上webp后缀, 形成新格式
+        String webpKey = FileUtil.mainName(key) + ".webp";
+        //根据以下规则构建
+        //"is_pic_info": 1,
+        //  "rules": [{
+        //      "fileid": "exampleobject",
+        //      "rule": "imageMogr2/format/<Format>"
+        //
+        PicOperations.Rule compressRule = new PicOperations.Rule();
+        compressRule.setRule("imageMogr2/format/webp");
+        //需要修改的桶
+        compressRule.setBucket(cosClientConfig.getBucket());
+        compressRule.setFileId(webpKey);
+        //将新规则添加到集合中, 方便添加
+        rules.add(compressRule);
+
+
+        //缩略图处理 , 仅对 > 20kb 的图片生成缩略图
+        if(file.length() > 2* 1024){
+            PicOperations.Rule thumbnailRule = new PicOperations.Rule();
+            //缩略图的地址 文件不带后缀名的地址 +  _thumbnail. + 文件后缀名
+            String thumbnailKey = FileUtil.mainName(key) + "_thumbnail." + FileUtil.getSuffix(key);
+            thumbnailRule.setFileId(thumbnailKey);
+            ///thumbnail/<Width>x<Height>>(如果大于原宽高, 则不处理)
+            thumbnailRule.setRule(String.format("imageMogr2/thumbnail/%sx%s", 256,256));
+            //需要修改的桶
+            thumbnailRule.setBucket(cosClientConfig.getBucket());
+            //将新规则添加到集合中, 方便添加
+            rules.add(thumbnailRule);
+
+            //将规则集合添加到处理规则中
+            picOperations.setRules(rules);
+        }
+
+
         //构造处理参数
         putObjectRequest.setPicOperations(picOperations);
         return cosClient.putObject(putObjectRequest);
     }
+
+    /**
+     * 删除对象
+     *
+     * @param key 文件 key
+     */
+    public void deleteObject(String key) throws CosClientException {
+        //getBucket() 方法从配置对象获取存储桶名称
+        cosClient.deleteObject(cosClientConfig.getBucket(), key);
+    }
+
+
 }

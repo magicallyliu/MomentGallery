@@ -4,13 +4,19 @@ package com.liuh.gallerybackend.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.liuh.gallerybackend.common.ResultUtils;
 import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
 import com.liuh.gallerybackend.exception.ThrowUils;
+import com.liuh.gallerybackend.mananger.CosManager;
 import com.liuh.gallerybackend.mananger.FileManager;
 import com.liuh.gallerybackend.mananger.upload.FilePictureUpload;
 import com.liuh.gallerybackend.mananger.upload.PictureUploadTemplate;
@@ -33,7 +39,11 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -42,6 +52,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -54,6 +65,16 @@ import java.util.stream.Collectors;
 public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         implements PictureService {
 
+//    //用于caffeine缓存
+//    //initialCapacity: 初始化的缓存大小
+//    //maximumSize: 缓存的最大数量
+//    //expireAfterWrite: 缓存的时间
+//    private final Cache<String, String> LOCAL_CACHE =
+//            Caffeine.newBuilder().initialCapacity(1024)
+//                    .maximumSize(10000L)
+//                    // 缓存 5 分钟移除
+//                    .expireAfterWrite(5L, TimeUnit.MINUTES)
+//                    .build();
     /**
      * 已经弃用
      *
@@ -70,6 +91,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
     @Resource
     private UrlPictureUpload urlPictureUpload;
+    @Autowired
+    private CosManager cosManager;
 
     @Override
     public PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
@@ -105,6 +128,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         //构造入库的图片信息
         Picture picture = new Picture();
         picture.setUrl(uploadPictureResult.getUrl());
+        picture.setThumbnailUrl(uploadPictureResult.getThumbnailUrl());
         String picName = uploadPictureResult.getPicName();
         //如果外层传来图片名称,  优先使用
         if (pictureUploadRequest != null && StrUtil.isNotBlank(pictureUploadRequest.getPicName())) {
@@ -127,6 +151,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             // 如果是更新, 需要补充 id和编辑时间
             picture.setId(pictureId);
             picture.setEditTime(new Date());
+            //清理图片资源
+            this.clearPictureFile(picture);
         }
         //注解属性值存在则更新记录，否插入一条记录
         //结果为是否插入成功
@@ -397,6 +423,76 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
         return uploadCount;
     }
+
+    //@async 异步操作 需要 @EnableAsync
+    @Async
+    @Override
+    public void clearPictureFile(Picture oldPicture) {
+       //判断该图片是否被多条记录使用
+       //获取老图片的url
+       String oldPictureUrl = oldPicture.getUrl();
+       //得到图片的引用数量
+        Long count = this.lambdaQuery()
+                .eq(Picture::getUrl, oldPictureUrl)
+                .count();
+        //如果多条引用, 就不删除
+        if (count > 1) {
+            return;
+        }
+        //删除图片文件
+        cosManager.deleteObject(oldPictureUrl);
+        //删除缩略图
+        String thumbnailUrl = oldPicture.getThumbnailUrl();
+        if (StrUtil.isNotBlank(thumbnailUrl)) {
+            cosManager.deleteObject(thumbnailUrl);
+        }
+    }
+//
+//    @Override
+//    public Page<PictureVO> listPictureVOPageWithCache(PictureQueryRequest pictureQueryRequest) {
+//        //查询缓存, 缓存中不存在, 再查询数据库
+//        //将查询对象装换为json字符串
+//        String jsonStr = JSONUtil.toJsonStr(pictureQueryRequest);
+//        //        //将其转换为哈希值, 并以16位16进制字符串的形式返回
+//        String hashKey = DigestUtils.md5DigestAsHex(jsonStr.getBytes());
+//        //每次查询的键值
+//        String cachedKey = String.format("listPictureVObyPage:%s", hashKey);
+//
+//        //先查询本地缓存
+//        String cachedValue = LOCAL_CACHE.getIfPresent(cachedKey);
+//        if (StrUtil.isNotBlank(cachedValue)){
+//            //如果存在, 则直接返回缓存中的数据
+//            return JSONUtil.toBean(cachedValue,Page.class);
+//        }
+//        //从分布式缓存中查询
+//        ValueOperations<String, String> opsForValue = stringRedisTemplate.opsForValue();
+//        //根据key值查询数据
+//        cachedValue = opsForValue.get(cachedKey);
+//        //判断是否存在缓存中
+//        if (StrUtil.isNotBlank(cachedValue)){
+//            //如果存在, 则更新本地缓存, 并且返回结果
+//            LOCAL_CACHE.put(cachedKey, cachedValue);
+//            return ResultUtils.success(JSONUtil.toBean(cachedValue,Page.class));
+//        }
+//
+//
+//        // 查询数据库
+//        Page<Picture> picturePage = pictureService.page(new Page<>(current, size),
+//                pictureService.getQueryWrapper(pictureQueryRequest));
+//        //获取封装类
+//        Page<PictureVO> pictureVOPage = pictureService.getPictureVOPage(picturePage, request);
+//
+//        //将查询到的数据转换为JSON字符串
+//        String cacheValue = JSONUtil.toJsonStr(pictureVOPage);
+//        //设置缓存的过期时间 (5 ~ 10分钟) --防止缓存雪崩
+//        int timeout = 300 + RandomUtil.randomInt(0, 300);
+//        //将查询到的数据写入分布式缓存中, 避免下次查询再次查询数据库
+//        //其中, timeout 为过期时间, TimeUnit.SECONDS 为时间单位秒
+//        opsForValue.set(hashKey,cacheValue, timeout, TimeUnit.SECONDS);
+//        //写入本地缓存
+//        LOCAL_CACHE.put(cachedKey, cacheValue);
+//        return null;
+//    }
 }
 
 

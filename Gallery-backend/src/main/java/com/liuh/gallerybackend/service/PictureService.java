@@ -92,4 +92,17 @@ public interface PictureService extends IService<Picture> {
      * @return 返回成功的图片数量
      */
     Integer uploadPictureByBatch(PictureUploadByBatchRequest  pictureUploadByBatchRequest, User user);
+
+    /**
+     * 清理存储桶中图片文件
+     * 在删除图片, 更新图片时执行
+     * @param oldPicture
+     */
+    void clearPictureFile(Picture oldPicture);
+//    /**
+//     * 分页获取图片列表 -- 二级缓存版本
+//     * @param pictureQueryRequest
+//     * @return
+//     */
+//    Page<PictureVO> listPictureVOPageWithCache(PictureQueryRequest pictureQueryRequest);
 }

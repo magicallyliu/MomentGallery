@@ -2,6 +2,10 @@ server:
   port: 8982
   servlet:
     context-path: /api  #指定上下文路径
+    session:
+      cookie:
+        max-age: 2592000
+  #cookie 30天过期
 spring:
   application:
     name: Gallery-backend  #项目名称
@@ -11,11 +15,28 @@ spring:
     url: jdbc:mysql://localhost:3306/MomentGallery
     username: root
     password: root
+  #redis 配置
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password: 123456
+    database: 0  #Redis数据库索引（默认为0）
+    timeout: 5000
+  #Session配置
+  session:
+    store-type: redis
+     # session 30 天过期
+    timeout: 2592000
+
+
   #    最大文件上传大小
   servlet:
     multipart:
       max-file-size: 10MB
 
+#  指定激活的配置
+#  profiles:
+#    active: local
 mybatis-plus:
   configuration:
     # MyBatis 配置
