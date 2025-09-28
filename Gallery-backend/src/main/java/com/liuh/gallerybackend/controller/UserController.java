@@ -10,10 +10,12 @@ import com.liuh.gallerybackend.constant.UserConstant;
 import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
 import com.liuh.gallerybackend.exception.ThrowUils;
+import com.liuh.gallerybackend.model.dto.space.SpaceAddRequest;
 import com.liuh.gallerybackend.model.dto.user.*;
 import com.liuh.gallerybackend.model.entity.User;
 import com.liuh.gallerybackend.model.vo.LoginUserVO;
 import com.liuh.gallerybackend.model.vo.UserVO;
+import com.liuh.gallerybackend.service.SpaceService;
 import com.liuh.gallerybackend.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,11 +40,14 @@ public class UserController {
     @Resource
     private UserService userService;
 
+    @Resource
+    private SpaceService spaceService;
+
     /**
      * 用户注册
      */
     @PostMapping("/register")
-    public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
+    public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest, HttpServletRequest request) {
         ThrowUils.throwIf(userRegisterRequest == null,
                 ErrorCode.PARAMS_ERROR, "获取用户注册信息失败");
 
@@ -51,6 +56,11 @@ public class UserController {
         String checkPassword = userRegisterRequest.getCheckPassword();
 
         long register = userService.userRegister(userAccount, userPassword, checkPassword);
+
+        //在用户注册成功的时候, 同时创建私人空间
+        User loginUser = userService.getLoginUser(request);
+        spaceService.addSpace(new SpaceAddRequest(), loginUser);
+
         return ResultUtils.success(register);
     }
 
@@ -158,8 +168,8 @@ public class UserController {
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest) {
         //参数不存在 和 参数错误则不执行删除
-        if(deleteRequest == null || deleteRequest.getId() <= 0){
-            throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户删除参数错误");
+        if (deleteRequest == null || deleteRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户删除参数错误");
         }
 
         //在数据库删除
@@ -174,8 +184,8 @@ public class UserController {
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
         //参数不存在 和 参数错误则不执行删除
-        if(userUpdateRequest == null || userUpdateRequest.getId() <= 0){
-            throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户更新参数错误");
+        if (userUpdateRequest == null || userUpdateRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户更新参数错误");
         }
 
         //转化为用户表
@@ -192,7 +202,7 @@ public class UserController {
      */
     @PostMapping("/list/page/vo")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Page<UserVO>> listUserByPageVO (@RequestBody UserQueryRequest userQueryRequest) {
+    public BaseResponse<Page<UserVO>> listUserByPageVO(@RequestBody UserQueryRequest userQueryRequest) {
         //参数不存在则不执行查询
         ThrowUils.throwIf(userQueryRequest == null,
                 ErrorCode.PARAMS_ERROR, "分页查询参数错误");
@@ -207,7 +217,7 @@ public class UserController {
                 userService.getQueryWrapper(userQueryRequest));
 
         //脱敏
-        Page<UserVO> userVOPage = new Page<>(current,pageSize, userPage.getTotal());
+        Page<UserVO> userVOPage = new Page<>(current, pageSize, userPage.getTotal());
         List<UserVO> userVOList = userService.getUserVOList(userPage.getRecords());
         //将脱敏后的数据设置到分页表中
         userVOPage.setRecords(userVOList);

@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -98,26 +100,27 @@ public class CosManager {
 
 
         //缩略图处理 , 仅对 > 20kb 的图片生成缩略图
-        if(file.length() > 2* 1024){
+        if (file.length() > 2 * 1024) {
             PicOperations.Rule thumbnailRule = new PicOperations.Rule();
             //缩略图的地址 文件不带后缀名的地址 +  _thumbnail. + 文件后缀名
             String thumbnailKey = FileUtil.mainName(key) + "_thumbnail." + FileUtil.getSuffix(key);
             thumbnailRule.setFileId(thumbnailKey);
             ///thumbnail/<Width>x<Height>>(如果大于原宽高, 则不处理)
-            thumbnailRule.setRule(String.format("imageMogr2/thumbnail/%sx%s", 256,256));
+            thumbnailRule.setRule(String.format("imageMogr2/thumbnail/%sx%s", 256, 256));
             //需要修改的桶
             thumbnailRule.setBucket(cosClientConfig.getBucket());
             //将新规则添加到集合中, 方便添加
             rules.add(thumbnailRule);
-
-            //将规则集合添加到处理规则中
-            picOperations.setRules(rules);
         }
 
-
+        //将规则集合添加到处理规则中
+        picOperations.setRules(rules);
         //构造处理参数
         putObjectRequest.setPicOperations(picOperations);
-        return cosClient.putObject(putObjectRequest);
+        PutObjectResult putObjectResult = cosClient.putObject(putObjectRequest);
+//        //删除原始图片\
+//        this.deleteObject(cosObjectKey(key));
+        return putObjectResult;
     }
 
     /**
@@ -126,9 +129,30 @@ public class CosManager {
      * @param key 文件 key
      */
     public void deleteObject(String key) throws CosClientException {
-        //getBucket() 方法从配置对象获取存储桶名称
         cosClient.deleteObject(cosClientConfig.getBucket(), key);
     }
 
-
+    /**
+     * 将一个url转换为一个合法腾讯云sos对象键
+     * @param url
+     * @return
+     */
+    public String cosObjectKey(String url) {
+        if (url != null) {
+            try {
+                URI uri = new URI(url);
+                String path = uri.getPath();
+                // 替换非法字符为下划线
+                path = path.replaceAll("[\\?%#&+=]", "_");
+                // 确保不以斜杠开头（可选）
+                if (path.startsWith("/")) {
+                    path = path.substring(1);
+                }
+                url = path;
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+        }
+        return url;
+    }
 }

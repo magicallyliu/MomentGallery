@@ -107,6 +107,36 @@ export async function listPictureVoPageWithCacheUsingPost(
   })
 }
 
+/** listPictureVOpageWithCaffeine POST /api/picture/list/page/vo/caffeine */
+export async function listPictureVOpageWithCaffeineUsingPost(
+  body: API.PictureQueryRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponsePagePictureVO_>('/api/picture/list/page/vo/caffeine', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** listPictureVOpageWithRedis POST /api/picture/list/page/vo/redis */
+export async function listPictureVOpageWithRedisUsingPost(
+  body: API.PictureQueryRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponsePagePictureVO_>('/api/picture/list/page/vo/redis', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
 /** doPictureReview POST /api/picture/review */
 export async function doPictureReviewUsingPost(
   body: API.PictureReviewRequest,

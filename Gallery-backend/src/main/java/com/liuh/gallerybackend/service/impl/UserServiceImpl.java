@@ -13,16 +13,19 @@ import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
 import com.liuh.gallerybackend.exception.ThrowUils;
 import com.liuh.gallerybackend.mapper.UserMapper;
+import com.liuh.gallerybackend.model.dto.space.SpaceAddRequest;
 import com.liuh.gallerybackend.model.dto.user.UserQueryRequest;
 import com.liuh.gallerybackend.model.entity.User;
 import com.liuh.gallerybackend.model.enums.UserRoleEnum;
 import com.liuh.gallerybackend.model.vo.LoginUserVO;
 import com.liuh.gallerybackend.model.vo.UserVO;
+import com.liuh.gallerybackend.service.SpaceService;
 import com.liuh.gallerybackend.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +43,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     /**
      * 用户注销
+     *
      * @param request 前端返回数据
      * @return 返回true则表示注销成功
      */
@@ -49,7 +53,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         User user = (User) request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
         //判断是否已经登录
         if (user == null) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR,"用户未登录");
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "用户未登录");
         }
 
         //移除登录态
@@ -192,11 +196,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         //为 true 代表插入数据库成功
         ThrowUils.throwIf(!saveResult,
                 ErrorCode.SYSTEM_ERROR, "插入数据库失败");
+
+
         return user.getId();
     }
 
     /**
-     * 用于对用户密码的加密1
+     * 用于对用户密码的加密
      *
      * @param userPassword 需要加密的密码
      * @return 加密之后的密码
@@ -260,6 +266,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     /**
      * 用户查询 -- 获取查询条件
+     *
      * @param userQueryRequest 查询所需要的表
      * @return
      */

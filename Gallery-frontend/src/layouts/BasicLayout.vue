@@ -19,6 +19,7 @@
 
 <script setup lang="ts">
 import GlobalHeader from '@/components/GlobalHeader.vue'
+import GlobalSider from '@/components/GlobalSider.vue'
 </script>
 
 

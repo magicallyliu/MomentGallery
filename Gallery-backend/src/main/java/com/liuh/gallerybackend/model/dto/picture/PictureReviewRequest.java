@@ -10,7 +10,9 @@ import java.io.Serializable;
  * @PackageName com.liuh.gallerybackend.model.dto.picture
  * @ClassName PictureReviewRequest
  * @Version
- * @Description 用于图片审核请求
+ * @Description 用于图片
+ * +
+ * 审核请求
  */
 
 @SuppressWarnings("all")

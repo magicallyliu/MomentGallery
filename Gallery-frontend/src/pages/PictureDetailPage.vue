@@ -4,10 +4,7 @@
       <!-- 图片展示区 -->
       <a-col :sm="24" :md="16" :xl="18">
         <a-card title="图片预览">
-          <a-image
-            style="max-height: 600px; object-fit: contain"
-            :src="picture.url"
-          />
+          <a-image style="max-height: 600px; object-fit: contain" :src="picture.url" />
         </a-card>
       </a-col>
       <!-- 图片信息区 -->
@@ -51,7 +48,7 @@
             </a-descriptions-item>
           </a-descriptions>
 
-<!--          操作按钮-->
+          <!--          操作按钮-->
           <a-space wrap>
             <a-button type="primary" @click="doDownload">
               免费下载
@@ -73,29 +70,25 @@
               </template>
             </a-button>
           </a-space>
-
         </a-card>
       </a-col>
     </a-row>
-
   </div>
 </template>
 
 <script setup lang="ts">
-
 import { computed, onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { deletePictureUsingPost, getPictureVoByIdUsingGet } from '@/api/pictureController.ts'
 import { downloadImage, formatSize } from '../utils'
-import {DeleteOutlined,EditOutlined,DownloadOutlined} from '@ant-design/icons-vue'
+import { DeleteOutlined, EditOutlined, DownloadOutlined } from '@ant-design/icons-vue'
 import { useLoginUserStore } from '@/stores/useLoginUserStore.ts'
 import router from '@/router'
-interface Props{
+interface Props {
   id: string | number
 }
 
 const props = defineProps<Props>()
-
 
 const picture = ref<API.PictureVO>({})
 
@@ -103,7 +96,7 @@ const loginUserStore = useLoginUserStore()
 
 // 是否具有编辑权限
 const canEdit = computed(() => {
-  const loginUser = loginUserStore.loginUser;
+  const loginUser = loginUserStore.loginUser
   // 未登录不可编辑
   if (!loginUser.id) {
     return false
@@ -116,6 +109,14 @@ const canEdit = computed(() => {
 // 编辑
 const doEdit = () => {
   router.push('/add_picture?id=' + picture.value.id)
+  //跳转是带spaceId
+  router.push({
+    path: '/add_picture',
+    query: {
+      id: picture.value.id,
+      spaceId: picture.value.spaceId,
+    },
+  })
 }
 // 删除
 const doDelete = async () => {
@@ -139,11 +140,11 @@ const fetchPictureDetail = async () => {
     })
     if (res.data.code === 20001 && res.data.data) {
       picture.value = res.data.data
-    }else {
-      message.error("获取图片失败" + res.data.message)
+    } else {
+      message.error('获取图片失败' + res.data.message)
     }
-  }catch (e:any){
-    message.error("获取图片失败" + e.message)
+  } catch (e: any) {
+    message.error('获取图片失败' + e.message)
   }
 }
 
@@ -155,7 +156,6 @@ onMounted(() => {
 const doDownload = () => {
   downloadImage(picture.value.url)
 }
-
 </script>
 
 <style scoped>

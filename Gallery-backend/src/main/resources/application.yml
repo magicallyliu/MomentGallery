@@ -32,7 +32,7 @@ spring:
   #    最大文件上传大小
   servlet:
     multipart:
-      max-file-size: 10MB
+      max-file-size: 2MB
 
 #  指定激活的配置
 #  profiles:

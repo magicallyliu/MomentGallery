@@ -1,5 +1,6 @@
 package com.liuh.gallerybackend.controller;
 
+import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
@@ -16,11 +17,13 @@ import com.liuh.gallerybackend.exception.ErrorCode;
 import com.liuh.gallerybackend.exception.ThrowUils;
 import com.liuh.gallerybackend.model.dto.picture.*;
 import com.liuh.gallerybackend.model.entity.Picture;
+import com.liuh.gallerybackend.model.entity.Space;
 import com.liuh.gallerybackend.model.entity.User;
 import com.liuh.gallerybackend.model.enums.PictureReviewStatusEnum;
 import com.liuh.gallerybackend.model.vo.PictureTagCategory;
 import com.liuh.gallerybackend.model.vo.PictureVO;
 import com.liuh.gallerybackend.service.PictureService;
+import com.liuh.gallerybackend.service.SpaceService;
 import com.liuh.gallerybackend.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -59,12 +62,17 @@ public class PictureController {
     private UserService userService;
 
     @Resource
+    private SpaceService  spaceService;
+
+    @Resource
     private StringRedisTemplate  stringRedisTemplate;
 
-    //用于caffeine缓存
-    //initialCapacity: 初始化的缓存大小
-    //maximumSize: 缓存的最大数量
-    //expireAfterWrite: 缓存的时间
+    /**
+     *     用于caffeine缓存
+     *     initialCapacity: 初始化的缓存大小
+     *     maximumSize: 缓存的最大数量
+     *     expireAfterWrite: 缓存的时间
+     */
     private final Cache<String, String> LOCAL_CACHE =
             Caffeine.newBuilder().initialCapacity(1024)
                     .maximumSize(10000L)
@@ -129,23 +137,7 @@ public class PictureController {
 
         //判断权限, 本人或者管理员可以删除
         User loginUser = userService.getLoginUser(request);
-        long id = deleteRequest.getId();
-        //已经存在的图片
-        Picture oldPicture = pictureService.getById(id);
-        //判断图片是否存在
-        ThrowUils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
-
-        //仅本人和管理员可以删除
-        if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
-
-        //在数据库中删除该图片
-        boolean removeById = pictureService.removeById(id);
-        ThrowUils.throwIf(!removeById, ErrorCode.OPERATION_ERROR, "删除失败");
-
-        //删除存储桶的资源
-        pictureService.clearPictureFile(oldPicture);
+        pictureService.deletePicture(deleteRequest.getId(),loginUser);
         return ResultUtils.success(true);
     }
 
@@ -221,6 +213,12 @@ public class PictureController {
         //查询数据库
         Picture byId = pictureService.getById(id);
         ThrowUils.throwIf(byId == null, ErrorCode.NOT_FOUND_ERROR);
+        //效验权限
+        //公共图片都可以访问, 私有图片只有本人可以访问
+        if (!ObjUtil.isNull(byId.getSpaceId())){
+            pictureService.checkPictureAuth(userService.getLoginUser(request), byId);
+        }
+
         return ResultUtils.success(pictureService.getPictureVO(byId, request));
     }
 
@@ -259,8 +257,27 @@ public class PictureController {
         long size = pictureQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
-        //普通用户默认只能看到审核通过的数据
-        pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
+
+        //空间权限效验
+        Long spaceId = pictureQueryRequest.getSpaceId();
+        if(ObjUtil.isNull(spaceId)){
+            //公共图库
+            //普通用户默认只能看到审核通过的数据
+            pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
+            //只能查看公共图片
+            pictureQueryRequest.setNullSpaceId(true);
+        }else {
+            //私有空间
+            User loginUser = userService.getLoginUser(request);
+            Space space = spaceService.getById(spaceId);
+            //判断空间是否存在
+            ThrowUils.throwIf(ObjUtil.isNull(space), ErrorCode.NOT_FOUND_ERROR);
+            //判断权限
+            //只有空间所有人可以访问
+            if (!space.getUserId().equals(loginUser.getId())){
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
+            }
+        }
         // 查询数据库
         Page<Picture> picturePage = pictureService.page(new Page<>(current, size),
                 pictureService.getQueryWrapper(pictureQueryRequest));
@@ -270,10 +287,12 @@ public class PictureController {
 
     /**
      * 分页获取图片列表 -- 二级缓存版本
+     *  暂时不使用
      * @param pictureQueryRequest
      * @param request
      * @return
      */
+    @Deprecated
     @PostMapping("/list/page/vo/cache")
     public BaseResponse<Page<PictureVO>>listPictureVOPageWithCache (@RequestBody PictureQueryRequest pictureQueryRequest,
                                                                     HttpServletRequest request) {
@@ -328,113 +347,115 @@ public class PictureController {
         // 获取封装类
         return ResultUtils.success(pictureVOPage);
     }
-//
-//    /**
-//     * 分页获取图片列表 -- 有缓存版本(分布式缓存)
-//     * @param pictureQueryRequest
-//     * @param request
-//     * @return
-//     */
-//    @PostMapping("/list/page/vo/redis")
-//    public BaseResponse<Page<PictureVO>>listPictureVOpageWithRedis (@RequestBody PictureQueryRequest pictureQueryRequest,
-//                                                             HttpServletRequest request) {
-//        long current = pictureQueryRequest.getCurrent();
-//        long size = pictureQueryRequest.getPageSize();
-//        // 限制爬虫
-//        ThrowUils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
-//        //普通用户默认只能看到审核通过的数据
-//        pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
-//
-//        //查询缓存, 缓存中不存在, 再查询数据库
-//        //将查询对象装换为json字符串
-//        String jsonStr = JSONUtil.toJsonStr(pictureQueryRequest);
-//        //将其转换为哈希值, 并以16位16进制字符串的形式返回
-//        String hashKey = DigestUtils.md5DigestAsHex(jsonStr.getBytes());
-//        //每次查询的键值
-//        String redisKey = String.format("momentGallery:listPictureVObyPage:%s", hashKey);
-//        //从缓存中查询
+
+    /**
+     * 分页获取图片列表 -- 有缓存版本(分布式缓存)
+     * @param pictureQueryRequest
+     * @param request
+     * @return
+     */
+    @Deprecated
+    @PostMapping("/list/page/vo/redis")
+    public BaseResponse<Page<PictureVO>>listPictureVOpageWithRedis (@RequestBody PictureQueryRequest pictureQueryRequest,
+                                                             HttpServletRequest request) {
+        long current = pictureQueryRequest.getCurrent();
+        long size = pictureQueryRequest.getPageSize();
+        // 限制爬虫
+        ThrowUils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
+        //普通用户默认只能看到审核通过的数据
+        pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
+
+        //查询缓存, 缓存中不存在, 再查询数据库
+        //将查询对象装换为json字符串
+        String jsonStr = JSONUtil.toJsonStr(pictureQueryRequest);
+        //将其转换为哈希值, 并以16位16进制字符串的形式返回
+        String hashKey = DigestUtils.md5DigestAsHex(jsonStr.getBytes());
+        //每次查询的键值
+        String redisKey = String.format("momentGallery:listPictureVObyPage:%s", hashKey);
+        //从缓存中查询
+        ValueOperations<String, String> opsForValue = stringRedisTemplate.opsForValue();
+         //根据key值查询数据
+        String cachedValue = opsForValue.get(redisKey);
+        //判断是否存在缓存中
+        if (StrUtil.isNotBlank(cachedValue)){
+            //如果存在, 则直接返回缓存中的数据
+            return ResultUtils.success(JSONUtil.toBean(cachedValue,Page.class));
+        }
+
+
+        // 查询数据库
+        Page<Picture> picturePage = pictureService.page(new Page<>(current, size),
+                pictureService.getQueryWrapper(pictureQueryRequest));
+        //获取封装类
+        Page<PictureVO> pictureVOPage = pictureService.getPictureVOPage(picturePage, request);
+
+        //将查询到的数据转换为JSON字符串
+        String cacheValue = JSONUtil.toJsonStr(pictureVOPage);
+        //设置缓存的过期时间 (5 ~ 10分钟) --防止缓存雪崩
+        int timeout = 300 + RandomUtil.randomInt(0, 300);
+        //将查询到的数据写入缓存中, 避免下次查询再次查询数据库
+        //其中, timeout 为过期时间, TimeUnit.SECONDS 为时间单位秒
+        opsForValue.set(hashKey,cacheValue, timeout, TimeUnit.SECONDS);
+
+        // 获取封装类
+        return ResultUtils.success(pictureVOPage);
+    }
+
+    /**
+     * 分页获取图片列表 -- 有缓存版本(本地缓存)
+     * @param pictureQueryRequest
+     * @param request
+     * @return
+     */
+    @Deprecated
+    @PostMapping("/list/page/vo/caffeine")
+    public BaseResponse<Page<PictureVO>>listPictureVOpageWithCaffeine (@RequestBody PictureQueryRequest pictureQueryRequest,
+                                                                    HttpServletRequest request) {
+        long current = pictureQueryRequest.getCurrent();
+        long size = pictureQueryRequest.getPageSize();
+        // 限制爬虫
+        ThrowUils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
+        //普通用户默认只能看到审核通过的数据
+        pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
+
+        //查询缓存, 缓存中不存在, 再查询数据库
+        //将查询对象装换为json字符串
+        String jsonStr = JSONUtil.toJsonStr(pictureQueryRequest);
+        //        //将其转换为哈希值, 并以16位16进制字符串的形式返回
+        String hashKey = DigestUtils.md5DigestAsHex(jsonStr.getBytes());
+        //每次查询的键值
+        String cachedKey = String.format("listPictureVObyPage:%s", hashKey);
+        //从缓存中查询
 //        ValueOperations<String, String> opsForValue = stringRedisTemplate.opsForValue();
-//         //根据key值查询数据
-//        String cachedValue = opsForValue.get(redisKey);
-//        //判断是否存在缓存中
-//        if (StrUtil.isNotBlank(cachedValue)){
-//            //如果存在, 则直接返回缓存中的数据
-//            return ResultUtils.success(JSONUtil.toBean(cachedValue,Page.class));
-//        }
-//
-//
-//        // 查询数据库
-//        Page<Picture> picturePage = pictureService.page(new Page<>(current, size),
-//                pictureService.getQueryWrapper(pictureQueryRequest));
-//        //获取封装类
-//        Page<PictureVO> pictureVOPage = pictureService.getPictureVOPage(picturePage, request);
-//
-//        //将查询到的数据转换为JSON字符串
-//        String cacheValue = JSONUtil.toJsonStr(pictureVOPage);
-//        //设置缓存的过期时间 (5 ~ 10分钟) --防止缓存雪崩
-//        int timeout = 300 + RandomUtil.randomInt(0, 300);
-//        //将查询到的数据写入缓存中, 避免下次查询再次查询数据库
-//        //其中, timeout 为过期时间, TimeUnit.SECONDS 为时间单位秒
+        //根据key值查询数据
+//        String cachedValue = opsForValue.get(cachedKey);
+        //本地缓存查询
+        String cachedValue = LOCAL_CACHE.getIfPresent(cachedKey);
+        //判断是否存在缓存中
+        if (StrUtil.isNotBlank(cachedValue)){
+            //如果存在, 则直接返回缓存中的数据
+            return ResultUtils.success(JSONUtil.toBean(cachedValue,Page.class));
+        }
+
+
+        // 查询数据库
+        Page<Picture> picturePage = pictureService.page(new Page<>(current, size),
+                pictureService.getQueryWrapper(pictureQueryRequest));
+        //获取封装类
+        Page<PictureVO> pictureVOPage = pictureService.getPictureVOPage(picturePage, request);
+
+        //将查询到的数据转换为JSON字符串
+        String cacheValue = JSONUtil.toJsonStr(pictureVOPage);
+        //设置缓存的过期时间 (5 ~ 10分钟) --防止缓存雪崩
+        int timeout = 300 + RandomUtil.randomInt(0, 300);
+        //将查询到的数据写入缓存中, 避免下次查询再次查询数据库
+        //其中, timeout 为过期时间, TimeUnit.SECONDS 为时间单位秒
 //        opsForValue.set(hashKey,cacheValue, timeout, TimeUnit.SECONDS);
-//
-//        // 获取封装类
-//        return ResultUtils.success(pictureVOPage);
-//    }
-//
-//    /**
-//     * 分页获取图片列表 -- 有缓存版本(本地缓存)
-//     * @param pictureQueryRequest
-//     * @param request
-//     * @return
-//     */
-//    @PostMapping("/list/page/vo/caffeine")
-//    public BaseResponse<Page<PictureVO>>listPictureVOpageWithCaffeine (@RequestBody PictureQueryRequest pictureQueryRequest,
-//                                                                    HttpServletRequest request) {
-//        long current = pictureQueryRequest.getCurrent();
-//        long size = pictureQueryRequest.getPageSize();
-//        // 限制爬虫
-//        ThrowUils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
-//        //普通用户默认只能看到审核通过的数据
-//        pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
-//
-//        //查询缓存, 缓存中不存在, 再查询数据库
-//        //将查询对象装换为json字符串
-//        String jsonStr = JSONUtil.toJsonStr(pictureQueryRequest);
-//        //        //将其转换为哈希值, 并以16位16进制字符串的形式返回
-//        String hashKey = DigestUtils.md5DigestAsHex(jsonStr.getBytes());
-//        //每次查询的键值
-//        String cachedKey = String.format("listPictureVObyPage:%s", hashKey);
-//        //从缓存中查询
-////        ValueOperations<String, String> opsForValue = stringRedisTemplate.opsForValue();
-//        //根据key值查询数据
-////        String cachedValue = opsForValue.get(cachedKey);
-//        //本地缓存查询
-//        String cachedValue = LOCAL_CACHE.getIfPresent(cachedKey);
-//        //判断是否存在缓存中
-//        if (StrUtil.isNotBlank(cachedValue)){
-//            //如果存在, 则直接返回缓存中的数据
-//            return ResultUtils.success(JSONUtil.toBean(cachedValue,Page.class));
-//        }
-//
-//
-//        // 查询数据库
-//        Page<Picture> picturePage = pictureService.page(new Page<>(current, size),
-//                pictureService.getQueryWrapper(pictureQueryRequest));
-//        //获取封装类
-//        Page<PictureVO> pictureVOPage = pictureService.getPictureVOPage(picturePage, request);
-//
-//        //将查询到的数据转换为JSON字符串
-//        String cacheValue = JSONUtil.toJsonStr(pictureVOPage);
-//        //设置缓存的过期时间 (5 ~ 10分钟) --防止缓存雪崩
-//        int timeout = 300 + RandomUtil.randomInt(0, 300);
-//        //将查询到的数据写入缓存中, 避免下次查询再次查询数据库
-//        //其中, timeout 为过期时间, TimeUnit.SECONDS 为时间单位秒
-////        opsForValue.set(hashKey,cacheValue, timeout, TimeUnit.SECONDS);
-//        //写入本地缓存
-//        LOCAL_CACHE.put(cachedKey, cacheValue);
-//        // 获取封装类
-//        return ResultUtils.success(pictureVOPage);
-//    }
+        //写入本地缓存
+        LOCAL_CACHE.put(cachedKey, cacheValue);
+        // 获取封装类
+        return ResultUtils.success(pictureVOPage);
+    }
 
     /**
      * 编辑图片（给用户使用）
@@ -448,29 +469,8 @@ public class PictureController {
         if (pictureEditRequest == null || pictureEditRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        // 在此处将实体类和 DTO 进行转换
-        Picture picture = new Picture();
-        BeanUtils.copyProperties(pictureEditRequest, picture);
-        // 注意将 list 转为 string
-        picture.setTags(JSONUtil.toJsonStr(pictureEditRequest.getTags()));
-        // 设置编辑时间
-        picture.setEditTime(new Date());
-        // 数据校验
-        pictureService.validPicture(picture);
         User loginUser = userService.getLoginUser(request);
-        //添加审核参数
-        pictureService.fillReviewParams(picture, loginUser);
-        // 判断是否存在
-        long id = pictureEditRequest.getId();
-        Picture oldPicture = pictureService.getById(id);
-        ThrowUils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
-        // 仅本人或管理员可编辑
-        if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
-        // 操作数据库
-        boolean result = pictureService.updateById(picture);
-        ThrowUils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        pictureService.editPicture(pictureEditRequest, loginUser);
         return ResultUtils.success(true);
     }
 

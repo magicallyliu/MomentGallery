@@ -4,18 +4,18 @@ import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.liuh.gallerybackend.common.BaseResponse;
+import com.liuh.gallerybackend.common.DeleteRequest;
 import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
 import com.liuh.gallerybackend.model.dto.file.UploadPictureResult;
-import com.liuh.gallerybackend.model.dto.picture.PictureQueryRequest;
-import com.liuh.gallerybackend.model.dto.picture.PictureReviewRequest;
-import com.liuh.gallerybackend.model.dto.picture.PictureUploadByBatchRequest;
-import com.liuh.gallerybackend.model.dto.picture.PictureUploadRequest;
+import com.liuh.gallerybackend.model.dto.picture.*;
 import com.liuh.gallerybackend.model.dto.user.UserQueryRequest;
 import com.liuh.gallerybackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.liuh.gallerybackend.model.entity.User;
 import com.liuh.gallerybackend.model.vo.PictureVO;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
@@ -40,12 +40,20 @@ public interface PictureService extends IService<Picture> {
                             User user);
 
     /**
+     * 图片的删除
+     * @param deleteRequest
+     * @param loginUser
+     * @return
+     */
+    void deletePicture( Long pictureId, User loginUser);
+
+    /**
      * 获取查询对象
      *
      * @param pictureQueryRequest 图片查询所需要的表
      * @return
      */
-    public QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest pictureQueryRequest);
+    QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest pictureQueryRequest);
 
     /**
      * 封装了获取图片的方法
@@ -99,6 +107,22 @@ public interface PictureService extends IService<Picture> {
      * @param oldPicture
      */
     void clearPictureFile(Picture oldPicture);
+
+    /**
+     * 效验空间图片权限 对于公共图库, 只有本人和管理员可以操作
+     *  私有图库, 只有空间所有人可以操作
+     * @param loginUser
+     * @param picture
+     */
+    void checkPictureAuth(User loginUser, Picture picture);
+
+    /**
+     *  编辑图片信息
+     * @param pictureEditRequest
+     * @param loginUser
+     * @return
+     */
+    void editPicture(PictureEditRequest pictureEditRequest, User loginUser);
 //    /**
 //     * 分页获取图片列表 -- 二级缓存版本
 //     * @param pictureQueryRequest
