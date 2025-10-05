@@ -3,6 +3,7 @@ package com.liuh.gallerybackend.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
@@ -35,6 +36,7 @@ import com.liuh.gallerybackend.model.vo.UserVO;
 import com.liuh.gallerybackend.service.PictureService;
 import com.liuh.gallerybackend.service.SpaceService;
 import com.liuh.gallerybackend.service.UserService;
+import com.liuh.gallerybackend.utils.ColorSimilarUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -52,11 +54,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.awt.*;
 import java.io.IOException;
-import java.util.Date;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -198,6 +199,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         picture.setPicScale(uploadPictureResult.getPicScale());
         picture.setPicFormat(uploadPictureResult.getPicFormat());
         picture.setUserId(loginUser.getId());
+
+        //上传主色调前, 将其转化为标准格式
+        picture.setPicColor(uploadPictureResult.getPicColor());
         //添加审核参数
         this.fillReviewParams(picture, loginUser);
 
@@ -316,6 +320,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Date reviewTime = pictureQueryRequest.getReviewTime();
         String sortField = pictureQueryRequest.getSortField();
         String sortOrder = pictureQueryRequest.getSortOrder();
+        Date startEditTime = pictureQueryRequest.getStartEditTime();
+        Date endEditTime = pictureQueryRequest.getEndEditTime();
+
 
         // 从多字段中搜索
         if (StrUtil.isNotBlank(searchText)) {
@@ -341,6 +348,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         queryWrapper.eq(ObjUtil.isNotEmpty(picScale), "picScale", picScale);
         queryWrapper.eq(ObjUtil.isNotEmpty(reviewStatus), "reviewStatus", reviewStatus);
         queryWrapper.eq(ObjUtil.isNotEmpty(reviewerId), "reviewerId", reviewerId);
+        //选择时间段的查询
+        queryWrapper.ge(ObjUtil.isNotEmpty(startEditTime), "editTime", startEditTime);
+        queryWrapper.lt(ObjUtil.isNotEmpty(endEditTime), "editTime", endEditTime);
+
         // JSON 数组查询
         if (CollUtil.isNotEmpty(tags)) {
             for (String tag : tags) {
@@ -615,6 +626,140 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         boolean result = this.updateById(picture);
         ThrowUils.throwIf(!result, ErrorCode.OPERATION_ERROR);
     }
+
+    @Override
+    public List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser) {
+        //1.  效验参数
+        ThrowUils.throwIf(StrUtil.isBlank(picColor), ErrorCode.PARAMS_ERROR);
+        ThrowUils.throwIf(ObjUtil.isNull(spaceId), ErrorCode.PARAMS_ERROR);
+        ThrowUils.throwIf(ObjUtil.isNull(loginUser), ErrorCode.PARAMS_ERROR);
+
+        //2. 效验空间权限
+        //得到用户
+        User searchColorUser = userService.getById(loginUser.getId());
+        //得到空间
+        Space colorSpace = spaceService.getById(spaceId);
+        //如果不是查询用户的空间拒绝
+        if (!colorSpace.getUserId().equals(searchColorUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+
+        //3.1 查询该空间下的所有图片
+        List<Picture> pictureColorList = this.lambdaQuery()
+                .eq(Picture::getSpaceId, spaceId)
+                .isNotNull(Picture::getPicColor)
+                .list();
+        //3.2如果没有图片, 返回空列表
+        if (CollectionUtil.isEmpty(pictureColorList)) {
+            return Collections.emptyList();
+        }
+        //3.3 将目标颜色字符串转换为主色调
+        Color targetColor = Color.decode(picColor);
+
+        //4. 计算相似度并排序
+        List<Picture> sortedPictureColorList = pictureColorList.stream()//从小到大
+                .sorted(Comparator.comparingDouble(picture -> {
+                    //二次判断是否为空字符串
+                    String pictureColor = picture.getPicColor();
+                    if (StrUtil.isBlank(pictureColor)) {
+                        //如果为空, 则返回一个很大的值
+                        return Double.MAX_VALUE;
+                    }
+                    //计算相似度
+                    Color picSearchColor = Color.decode(pictureColor);
+                    return -ColorSimilarUtils.calculateSimilarity(targetColor, picSearchColor);
+
+                }))
+                .limit(12)//限制返回数量为12条
+                .collect(Collectors.toList());
+        //返回结果
+        //返回vo类
+        return sortedPictureColorList.stream()
+                .map(PictureVO::objToVo)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser) {
+        // 1. 获取和效验参数
+        List<Long> pictureIdList = pictureEditByBatchRequest.getPictureIdList();
+        Long spaceId = pictureEditByBatchRequest.getSpaceId();
+        String category = pictureEditByBatchRequest.getCategory();
+        List<String> tags = pictureEditByBatchRequest.getTags();
+        ThrowUils.throwIf(CollUtil.isEmpty(pictureIdList), ErrorCode.PARAMS_ERROR);
+        ThrowUils.throwIf(ObjUtil.isNull(spaceId), ErrorCode.PARAMS_ERROR);
+        ThrowUils.throwIf(ObjUtil.isNull(loginUser), ErrorCode.NO_AUTH_ERROR);
+
+
+        //获取空间
+        Space spaceEdit = spaceService.getById(spaceId);
+        ThrowUils.throwIf(ObjUtil.isNull(spaceEdit), ErrorCode.PARAMS_ERROR);
+        //2.  效验空间权限
+        if (!spaceEdit.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+
+        //3. 查询指定的图片(只查询需要的字段)
+        List<Picture> pictureList = this.lambdaQuery()
+                .select(Picture::getId, Picture::getSpaceId)
+                .eq(Picture::getSpaceId, spaceId)
+                .in(Picture::getId, pictureIdList)
+                .list();
+
+        //如果为空, 则不需要编辑
+        if (CollectionUtil.isEmpty(pictureList)) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "指定的图片不存在或不属于该空间");
+        }
+
+        //4. 更新分类和标签
+        pictureList.forEach(picture -> {
+            //判断是否为空, 只有不为空才进行更新
+            if (StrUtil.isNotBlank(category)) {
+                picture.setCategory(category);
+            }
+            if (CollUtil.isNotEmpty(tags)) {
+                picture.setTags(JSONUtil.toJsonStr(tags));
+            }
+
+        });
+        //批量重命名
+        String nameRule = pictureEditByBatchRequest.getNameRule();
+        if (StrUtil.isNotBlank(nameRule)) {
+            fillPictureWithNameRule(pictureList, nameRule);
+        }
+
+        //5. 操作数据库
+        boolean result = this.updateBatchById(pictureList);
+        ThrowUils.throwIf(!result, ErrorCode.OPERATION_ERROR, "批量修改失败");
+
+    }
+
+    /**
+     * 为用户批量处理图片服务, 该方法作用为批量修改图片名称
+     * 名称为用户提供的目标名称加编号
+     *
+     * @param pictureList
+     * @param nameRule
+     */
+    private void fillPictureWithNameRule(List<Picture> pictureList, String nameRule) {
+        if (StrUtil.isBlank(nameRule) || CollUtil.isEmpty(pictureList)) {
+            return;
+        }
+
+        //序号
+        long count = 1;
+        //遍历图片列表
+        for (Picture picture : pictureList) {
+            //获取图片名称
+            try {
+                String picName = nameRule.replaceAll("\\{序号}", String.valueOf(count++));
+                picture.setName(picName);
+            } catch (Exception e) {
+                log.error("名称解析错误");
+                ThrowUils.throwIf(true, ErrorCode.PARAMS_ERROR, "名称解析错误");
+            }
+        }
+    }
 //
 //    @Override
 //    public Page<PictureVO> listPictureVOPageWithCache(PictureQueryRequest pictureQueryRequest) {
@@ -661,7 +806,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 //        LOCAL_CACHE.put(cachedKey, cacheValue);
 //        return null;
 //    }
-}
+    }
 
 
 

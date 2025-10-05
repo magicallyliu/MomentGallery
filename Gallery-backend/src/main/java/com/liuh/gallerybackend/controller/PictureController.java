@@ -8,6 +8,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.liuh.gallerybackend.annotation.AuthCheck;
+import com.liuh.gallerybackend.api.imagesearch.ImageSearchApiFacade;
+import com.liuh.gallerybackend.api.imagesearch.model.ImageSearchResult;
 import com.liuh.gallerybackend.common.BaseResponse;
 import com.liuh.gallerybackend.common.DeleteRequest;
 import com.liuh.gallerybackend.common.ResultUtils;
@@ -25,6 +27,7 @@ import com.liuh.gallerybackend.model.vo.PictureVO;
 import com.liuh.gallerybackend.service.PictureService;
 import com.liuh.gallerybackend.service.SpaceService;
 import com.liuh.gallerybackend.service.UserService;
+import com.qcloud.cos.model.ciModel.image.ImageSearchRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -62,16 +65,16 @@ public class PictureController {
     private UserService userService;
 
     @Resource
-    private SpaceService  spaceService;
+    private SpaceService spaceService;
 
     @Resource
-    private StringRedisTemplate  stringRedisTemplate;
+    private StringRedisTemplate stringRedisTemplate;
 
     /**
-     *     用于caffeine缓存
-     *     initialCapacity: 初始化的缓存大小
-     *     maximumSize: 缓存的最大数量
-     *     expireAfterWrite: 缓存的时间
+     * 用于caffeine缓存
+     * initialCapacity: 初始化的缓存大小
+     * maximumSize: 缓存的最大数量
+     * expireAfterWrite: 缓存的时间
      */
     private final Cache<String, String> LOCAL_CACHE =
             Caffeine.newBuilder().initialCapacity(1024)
@@ -103,6 +106,7 @@ public class PictureController {
 
     /**
      * 通过url上传图片
+     *
      * @param multipartFile
      * @param pictureUploadRequest
      * @param request
@@ -111,9 +115,9 @@ public class PictureController {
     @PostMapping("/upload/url")
 //    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<PictureVO> uploadPicture
-            (@RequestParam("multipartFile") MultipartFile multipartFile,
-             PictureUploadRequest pictureUploadRequest,
-             HttpServletRequest request) {
+    (@RequestParam("multipartFile") MultipartFile multipartFile,
+     PictureUploadRequest pictureUploadRequest,
+     HttpServletRequest request) {
         //获取当前用户登录的信息
         User loginUser = userService.getLoginUser(request);
         //上传图片
@@ -137,7 +141,7 @@ public class PictureController {
 
         //判断权限, 本人或者管理员可以删除
         User loginUser = userService.getLoginUser(request);
-        pictureService.deletePicture(deleteRequest.getId(),loginUser);
+        pictureService.deletePicture(deleteRequest.getId(), loginUser);
         return ResultUtils.success(true);
     }
 
@@ -215,7 +219,7 @@ public class PictureController {
         ThrowUils.throwIf(byId == null, ErrorCode.NOT_FOUND_ERROR);
         //效验权限
         //公共图片都可以访问, 私有图片只有本人可以访问
-        if (!ObjUtil.isNull(byId.getSpaceId())){
+        if (!ObjUtil.isNull(byId.getSpaceId())) {
             pictureService.checkPictureAuth(userService.getLoginUser(request), byId);
         }
 
@@ -260,13 +264,13 @@ public class PictureController {
 
         //空间权限效验
         Long spaceId = pictureQueryRequest.getSpaceId();
-        if(ObjUtil.isNull(spaceId)){
+        if (ObjUtil.isNull(spaceId)) {
             //公共图库
             //普通用户默认只能看到审核通过的数据
             pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
             //只能查看公共图片
             pictureQueryRequest.setNullSpaceId(true);
-        }else {
+        } else {
             //私有空间
             User loginUser = userService.getLoginUser(request);
             Space space = spaceService.getById(spaceId);
@@ -274,7 +278,7 @@ public class PictureController {
             ThrowUils.throwIf(ObjUtil.isNull(space), ErrorCode.NOT_FOUND_ERROR);
             //判断权限
             //只有空间所有人可以访问
-            if (!space.getUserId().equals(loginUser.getId())){
+            if (!space.getUserId().equals(loginUser.getId())) {
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
             }
         }
@@ -287,14 +291,15 @@ public class PictureController {
 
     /**
      * 分页获取图片列表 -- 二级缓存版本
-     *  暂时不使用
+     * 暂时不使用
+     *
      * @param pictureQueryRequest
      * @param request
      * @return
      */
     @Deprecated
     @PostMapping("/list/page/vo/cache")
-    public BaseResponse<Page<PictureVO>>listPictureVOPageWithCache (@RequestBody PictureQueryRequest pictureQueryRequest,
+    public BaseResponse<Page<PictureVO>> listPictureVOPageWithCache(@RequestBody PictureQueryRequest pictureQueryRequest,
                                                                     HttpServletRequest request) {
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
@@ -313,19 +318,19 @@ public class PictureController {
 
         //先查询本地缓存
         String cachedValue = LOCAL_CACHE.getIfPresent(cachedKey);
-        if (StrUtil.isNotBlank(cachedValue)){
+        if (StrUtil.isNotBlank(cachedValue)) {
             //如果存在, 则直接返回缓存中的数据
-            return ResultUtils.success(JSONUtil.toBean(cachedValue,Page.class));
+            return ResultUtils.success(JSONUtil.toBean(cachedValue, Page.class));
         }
         //从分布式缓存中查询
         ValueOperations<String, String> opsForValue = stringRedisTemplate.opsForValue();
         //根据key值查询数据
         cachedValue = opsForValue.get(cachedKey);
         //判断是否存在缓存中
-        if (StrUtil.isNotBlank(cachedValue)){
+        if (StrUtil.isNotBlank(cachedValue)) {
             //如果存在, 则更新本地缓存, 并且返回结果
             LOCAL_CACHE.put(cachedKey, cachedValue);
-            return ResultUtils.success(JSONUtil.toBean(cachedValue,Page.class));
+            return ResultUtils.success(JSONUtil.toBean(cachedValue, Page.class));
         }
 
 
@@ -341,7 +346,7 @@ public class PictureController {
         int timeout = 300 + RandomUtil.randomInt(0, 300);
         //将查询到的数据写入分布式缓存中, 避免下次查询再次查询数据库
         //其中, timeout 为过期时间, TimeUnit.SECONDS 为时间单位秒
-        opsForValue.set(hashKey,cacheValue, timeout, TimeUnit.SECONDS);
+        opsForValue.set(hashKey, cacheValue, timeout, TimeUnit.SECONDS);
         //写入本地缓存
         LOCAL_CACHE.put(cachedKey, cacheValue);
         // 获取封装类
@@ -350,14 +355,15 @@ public class PictureController {
 
     /**
      * 分页获取图片列表 -- 有缓存版本(分布式缓存)
+     *
      * @param pictureQueryRequest
      * @param request
      * @return
      */
     @Deprecated
     @PostMapping("/list/page/vo/redis")
-    public BaseResponse<Page<PictureVO>>listPictureVOpageWithRedis (@RequestBody PictureQueryRequest pictureQueryRequest,
-                                                             HttpServletRequest request) {
+    public BaseResponse<Page<PictureVO>> listPictureVOpageWithRedis(@RequestBody PictureQueryRequest pictureQueryRequest,
+                                                                    HttpServletRequest request) {
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
         // 限制爬虫
@@ -374,12 +380,12 @@ public class PictureController {
         String redisKey = String.format("momentGallery:listPictureVObyPage:%s", hashKey);
         //从缓存中查询
         ValueOperations<String, String> opsForValue = stringRedisTemplate.opsForValue();
-         //根据key值查询数据
+        //根据key值查询数据
         String cachedValue = opsForValue.get(redisKey);
         //判断是否存在缓存中
-        if (StrUtil.isNotBlank(cachedValue)){
+        if (StrUtil.isNotBlank(cachedValue)) {
             //如果存在, 则直接返回缓存中的数据
-            return ResultUtils.success(JSONUtil.toBean(cachedValue,Page.class));
+            return ResultUtils.success(JSONUtil.toBean(cachedValue, Page.class));
         }
 
 
@@ -395,7 +401,7 @@ public class PictureController {
         int timeout = 300 + RandomUtil.randomInt(0, 300);
         //将查询到的数据写入缓存中, 避免下次查询再次查询数据库
         //其中, timeout 为过期时间, TimeUnit.SECONDS 为时间单位秒
-        opsForValue.set(hashKey,cacheValue, timeout, TimeUnit.SECONDS);
+        opsForValue.set(hashKey, cacheValue, timeout, TimeUnit.SECONDS);
 
         // 获取封装类
         return ResultUtils.success(pictureVOPage);
@@ -403,14 +409,15 @@ public class PictureController {
 
     /**
      * 分页获取图片列表 -- 有缓存版本(本地缓存)
+     *
      * @param pictureQueryRequest
      * @param request
      * @return
      */
     @Deprecated
     @PostMapping("/list/page/vo/caffeine")
-    public BaseResponse<Page<PictureVO>>listPictureVOpageWithCaffeine (@RequestBody PictureQueryRequest pictureQueryRequest,
-                                                                    HttpServletRequest request) {
+    public BaseResponse<Page<PictureVO>> listPictureVOpageWithCaffeine(@RequestBody PictureQueryRequest pictureQueryRequest,
+                                                                       HttpServletRequest request) {
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
         // 限制爬虫
@@ -432,9 +439,9 @@ public class PictureController {
         //本地缓存查询
         String cachedValue = LOCAL_CACHE.getIfPresent(cachedKey);
         //判断是否存在缓存中
-        if (StrUtil.isNotBlank(cachedValue)){
+        if (StrUtil.isNotBlank(cachedValue)) {
             //如果存在, 则直接返回缓存中的数据
-            return ResultUtils.success(JSONUtil.toBean(cachedValue,Page.class));
+            return ResultUtils.success(JSONUtil.toBean(cachedValue, Page.class));
         }
 
 
@@ -511,13 +518,14 @@ public class PictureController {
 
     /**
      * 批量抓取并获取图片
+     *
      * @param pictureUploadByBatchRequest
      * @param request
      * @return
      */
     @PostMapping("/upload/batch")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Integer> uploadPictureByBatch(@RequestBody PictureUploadByBatchRequest pictureUploadByBatchRequest ,
+    public BaseResponse<Integer> uploadPictureByBatch(@RequestBody PictureUploadByBatchRequest pictureUploadByBatchRequest,
                                                       HttpServletRequest request) {
         //参数不存在则不执行查询
         ThrowUils.throwIf(pictureUploadByBatchRequest == null,
@@ -528,9 +536,76 @@ public class PictureController {
         return ResultUtils.success(integer);
     }
 
+    /**
+     * 根据图片识别图片
+     * 上传图库中存在的图片去查询相似的图片
+     *
+     * @param searchPictureByPictureRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/search/picture")
+    public BaseResponse<List<ImageSearchResult>> searchPictureByPicture(
+            @RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest
+            , HttpServletRequest request) {
+
+        //参数不存在则不执行查询
+        ThrowUils.throwIf(searchPictureByPictureRequest == null,
+                ErrorCode.PARAMS_ERROR);
+
+        //实现以图搜图
+        Long searchPictureId = searchPictureByPictureRequest.getPictureId();
+        //图片id存在在图库中
+        ThrowUils.throwIf(searchPictureId == null
+                || searchPictureId <= 0, ErrorCode.PARAMS_ERROR);
+        //查询图片
+        Picture picture = pictureService.getById(searchPictureId);
+        //图片不存在
+        ThrowUils.throwIf(picture == null, ErrorCode.PARAMS_ERROR);
+        //获取相似图片
+        List<ImageSearchResult> imageSearchResults = ImageSearchApiFacade.searchImage(picture.getUrl());
+        //返回相似图片
+        return ResultUtils.success(imageSearchResults);
+    }
+
+    /**
+     * 根据图片颜色搜索图片
+     * 用户选择一种颜色, 根据选择的颜色返回一定数量的图片
+     *
+     * @param searchPictureByColorRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/search/color")
+    public BaseResponse<List<PictureVO>> searchPictureByColor(@RequestBody SearchPictureByColorRequest searchPictureByColorRequest,
+                                                              HttpServletRequest request) {
+        //参数不存在则不执行查询
+        ThrowUils.throwIf(ObjUtil.isEmpty(searchPictureByColorRequest),
+                ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        //获取需要的参数并执行
+        List<PictureVO> searchPictureVOByColor = pictureService.searchPictureByColor(
+                searchPictureByColorRequest.getSpaceId(), searchPictureByColorRequest.getPicColor(), loginUser);
+        //返回查询结果
+        return ResultUtils.success(searchPictureVOByColor);
+    }
+
+
+    @PostMapping("/edit/batch")
+    public BaseResponse<Boolean> editPictureByBatch(
+            @RequestBody PictureEditByBatchRequest pictureEditByBatchRequest,
+            HttpServletRequest request) {
+        //判断是否为空
+        ThrowUils.throwIf(ObjUtil.isEmpty(pictureEditByBatchRequest),
+                ErrorCode.PARAMS_ERROR);
+        //获取用户信息
+        User loginUser = userService.getLoginUser(request);
+        //执行修改
+        pictureService.editPictureByBatch(pictureEditByBatchRequest, loginUser);
+        return ResultUtils.success(true);
+    }
+
 }
-
-
 
 
 

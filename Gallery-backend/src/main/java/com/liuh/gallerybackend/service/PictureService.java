@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * @author 19627
@@ -41,7 +42,7 @@ public interface PictureService extends IService<Picture> {
 
     /**
      * 图片的删除
-     * @param deleteRequest
+     * @param pictureId
      * @param loginUser
      * @return
      */
@@ -123,6 +124,24 @@ public interface PictureService extends IService<Picture> {
      * @return
      */
     void editPicture(PictureEditRequest pictureEditRequest, User loginUser);
+
+    /**
+     * 根据颜色搜索图片
+     *
+     * @param spaceId   需要查询的空间
+     * @param picColor  用户需要搜索的图片的颜色
+     * @param loginUser 要求搜索的用户
+     * @return
+     */
+    List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser);
+
+    /**
+     * 批量操作图片
+     *
+     * @param pictureEditByBatchRequest
+     * @param loginUser
+     */
+    void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser);
 //    /**
 //     * 分页获取图片列表 -- 二级缓存版本
 //     * @param pictureQueryRequest

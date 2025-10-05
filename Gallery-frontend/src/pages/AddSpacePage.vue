@@ -46,7 +46,7 @@ import {
   updateSpaceUsingPost,
 } from '@/api/spaceController.ts'
 import { useRoute, useRouter } from 'vue-router'
-import {SPACE_LEVEL_MAP, SPACE_LEVEL_OPTIONS, SPACE_TYPE_ENUM, SPACE_TYPE_MAP} from '@/constants/space.ts'
+import { SPACE_LEVEL_OPTIONS, SPACE_TYPE_ENUM, SPACE_TYPE_MAP} from '@/constants/space.ts'
 import { formatSize } from '../utils'
 
 const space = ref<API.SpaceVO>()
@@ -107,7 +107,7 @@ const handleSubmit = async (values: any) => {
     message.success('操作成功')
     // 跳转到空间详情页
     router.push({
-      path: `/space/${res.data.data}`,
+      path: `/space/${spaceId ?? res.data.data}`,
     })
   } else {
     message.error('操作失败，' + res.data.message)

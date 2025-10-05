@@ -118,8 +118,8 @@ public class CosManager {
         //构造处理参数
         putObjectRequest.setPicOperations(picOperations);
         PutObjectResult putObjectResult = cosClient.putObject(putObjectRequest);
-//        //删除原始图片\
-//        this.deleteObject(cosObjectKey(key));
+        //删除原始图片\
+        this.deleteObject(cosObjectKey(key));
         return putObjectResult;
     }
 

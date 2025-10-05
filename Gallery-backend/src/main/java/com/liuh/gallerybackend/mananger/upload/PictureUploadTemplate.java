@@ -11,6 +11,7 @@ import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
 import com.liuh.gallerybackend.mananger.CosManager;
 import com.liuh.gallerybackend.model.dto.file.UploadPictureResult;
+import com.liuh.gallerybackend.utils.ColorTransformUtils;
 import com.qcloud.cos.model.PutObjectResult;
 import com.qcloud.cos.model.ciModel.persistence.CIObject;
 import com.qcloud.cos.model.ciModel.persistence.ImageInfo;
@@ -80,12 +81,12 @@ public abstract class PictureUploadTemplate {
                 //缩略图默认等于压缩图
                 CIObject thumbnailCiObject = compressCiObject;
                 //缩略图的信息
-                if (objectList.size() > 1){
+                if (objectList.size() > 1) {
                     thumbnailCiObject = objectList.get(1);
                 }
 
                 //封装压缩后的图片处理结果
-                return buildResult(originFilename, compressCiObject,thumbnailCiObject);
+                return buildResult(originFilename, compressCiObject, thumbnailCiObject, imageInfo);
             }
 
             // 5.获取图片信息,  并封装返回结果
@@ -101,20 +102,23 @@ public abstract class PictureUploadTemplate {
 
 
     /**
-     *  校验输入源（本地文件或 URL）
+     * 校验输入源（本地文件或 URL）
+     *
      * @param inputSource
      */
     protected abstract void validPicture(Object inputSource);
 
     /**
-     *  获取输入源的原始文件名
+     * 获取输入源的原始文件名
+     *
      * @param inputSource
      * @return
      */
     protected abstract String getOriginFilename(Object inputSource);
 
     /**
-     *  处理输入源并生成本地临时文件
+     * 处理输入源并生成本地临时文件
+     *
      * @param inputSource
      * @param file
      * @throws Exception
@@ -123,12 +127,15 @@ public abstract class PictureUploadTemplate {
 
     /**
      * 封装返回结果 -- 压缩版
+     *
      * @param originFilename
      * @param compressCiObject 压缩后的图片处理结果
-     * @param thumbnail 缩略图
+     * @param thumbnail        缩略图
+     * @param imageInfo        图片信息
      * @return
      */
-    private UploadPictureResult buildResult(String originFilename, CIObject compressedCiObject, CIObject thumbnail) {
+    private UploadPictureResult buildResult(String originFilename, CIObject compressedCiObject
+            , CIObject thumbnail, ImageInfo imageInfo) {
         UploadPictureResult uploadPictureResult = new UploadPictureResult();
         int picWidth = compressedCiObject.getWidth();
         int picHeight = compressedCiObject.getHeight();
@@ -139,17 +146,29 @@ public abstract class PictureUploadTemplate {
         uploadPictureResult.setPicScale(picScale);
         uploadPictureResult.setPicFormat(compressedCiObject.getFormat());
         uploadPictureResult.setPicSize(compressedCiObject.getSize().longValue());
+        //图片主色调
+        //规范格式
+        //在有些格式无法解决, 只能报错
+        String color = "null";
+        try {
+            color = ColorTransformUtils.expandHexColor(imageInfo.getAve());
+
+        } catch (Exception e) {
+            log.error("图片主色调获取发生错误,  主色调为{}", imageInfo.getAve());
+        }
+        uploadPictureResult.setPicColor(color);
         // 设置图片为压缩后的地址
         uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + compressedCiObject.getKey());
 
         //缩略图
         uploadPictureResult.setPicFormat(thumbnail.getFormat());
-        uploadPictureResult.setThumbnailUrl(cosClientConfig.getHost() + "/" +  thumbnail.getKey());
+        uploadPictureResult.setThumbnailUrl(cosClientConfig.getHost() + "/" + thumbnail.getKey());
         return uploadPictureResult;
     }
 
     /**
      * 封装返回结果
+     *
      * @param originFilename
      * @param file
      * @param uploadPath
@@ -166,6 +185,18 @@ public abstract class PictureUploadTemplate {
         uploadPictureResult.setPicHeight(picHeight);
         uploadPictureResult.setPicScale(picScale);
         uploadPictureResult.setPicFormat(imageInfo.getFormat());
+        //图片主色调
+        //规范格式
+        //在有些格式无法解决, 只能报错
+        String color = "null";
+        try {
+            color = ColorTransformUtils.expandHexColor(imageInfo.getAve());
+
+        } catch (Exception e) {
+            log.error("图片主色调获取发生错误,  主色调为{}", imageInfo.getAve());
+        }
+        uploadPictureResult.setPicColor(color);
+
         uploadPictureResult.setPicSize(FileUtil.size(file));
         uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + uploadPath);
         return uploadPictureResult;
