@@ -2,7 +2,6 @@ package com.liuh.gallerybackend.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.ObjUtil;
-import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.liuh.gallerybackend.annotation.AuthCheck;
@@ -12,17 +11,12 @@ import com.liuh.gallerybackend.common.ResultUtils;
 import com.liuh.gallerybackend.constant.UserConstant;
 import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
-import com.liuh.gallerybackend.exception.ThrowUils;
-import com.liuh.gallerybackend.model.dto.picture.PictureEditRequest;
-import com.liuh.gallerybackend.model.dto.picture.PictureQueryRequest;
-import com.liuh.gallerybackend.model.dto.picture.PictureUpdateRequest;
+import com.liuh.gallerybackend.exception.ThrowUtils;
 import com.liuh.gallerybackend.model.dto.space.*;
 import com.liuh.gallerybackend.model.entity.Picture;
 import com.liuh.gallerybackend.model.entity.Space;
 import com.liuh.gallerybackend.model.entity.User;
-import com.liuh.gallerybackend.model.enums.PictureReviewStatusEnum;
 import com.liuh.gallerybackend.model.enums.SpaceLevelEnum;
-import com.liuh.gallerybackend.model.vo.PictureVO;
 import com.liuh.gallerybackend.model.vo.SpaceVO;
 import com.liuh.gallerybackend.service.PictureService;
 import com.liuh.gallerybackend.service.SpaceService;
@@ -75,7 +69,7 @@ public class SpaceController {
     @PostMapping("/add")
     public BaseResponse<Long> addSpace(@RequestBody SpaceAddRequest spaceAddRequest, HttpServletRequest request) {
         //判断是否为空
-        ThrowUils.throwIf(ObjUtil.isNull(spaceAddRequest), ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(ObjUtil.isNull(spaceAddRequest), ErrorCode.PARAMS_ERROR);
         //获取当前登录用户
         User loginUser = userService.getLoginUser(request);
         long newId = spaceService.addSpace(spaceAddRequest, loginUser);
@@ -100,7 +94,7 @@ public class SpaceController {
         long spaceId = deleteRequest.getId();
         //判断空间是否存在
         Space oldSpace = spaceService.getById(spaceId);
-        ThrowUils.throwIf(ObjUtil.isNull(oldSpace), ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(ObjUtil.isNull(oldSpace), ErrorCode.NOT_FOUND_ERROR);
 
         //只有本人和管理员可以操作
         //仅本人和管理员可以删除
@@ -112,7 +106,7 @@ public class SpaceController {
         //使用事务管理
         transactionTemplate.execute(status -> {
             boolean removeById = spaceService.removeById(spaceId);
-            ThrowUils.throwIf(!removeById, ErrorCode.SYSTEM_ERROR, "删除失败");
+            ThrowUtils.throwIf(!removeById, ErrorCode.SYSTEM_ERROR, "删除失败");
             //查询该空间下的所有图片
             List<Picture> pictures = pictureService.list(new QueryWrapper<Picture>().eq("spaceId", spaceId));
             //获取该图片列表的id
@@ -124,7 +118,7 @@ public class SpaceController {
             for (Picture picture : pictures) {
                 pictureService.clearPictureFile(picture);
             }
-            ThrowUils.throwIf(!remove, ErrorCode.SYSTEM_ERROR, "删除失败");
+            ThrowUtils.throwIf(!remove, ErrorCode.SYSTEM_ERROR, "删除失败");
             return remove;
 
         });
@@ -148,7 +142,7 @@ public class SpaceController {
         //判断空间是否存在
         long id = spaceUpdateRequest.getId();
         Space byId = spaceService.getById(id);
-        ThrowUils.throwIf(ObjUtil.isNull(byId), ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(ObjUtil.isNull(byId), ErrorCode.NOT_FOUND_ERROR);
 
         //将图片信息提取出来
         //spaceUpdateRequest 中的数据 复制到 space (仅仅复制两者相同的字符)
@@ -164,7 +158,7 @@ public class SpaceController {
 
         //操作数据库
         boolean b = spaceService.updateById(space);
-        ThrowUils.throwIf(!b, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!b, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }
 
@@ -178,10 +172,10 @@ public class SpaceController {
     @GetMapping("/get")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Space> getSpaceById(Long id, HttpServletRequest request) {
-        ThrowUils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         //查询数据库
         Space byId = spaceService.getById(id);
-        ThrowUils.throwIf(byId == null, ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(byId == null, ErrorCode.NOT_FOUND_ERROR);
         return ResultUtils.success(byId);
     }
 
@@ -194,12 +188,12 @@ public class SpaceController {
      */
     @GetMapping("/get/VO")
     public BaseResponse<SpaceVO> getSpaceVOById(Long id, HttpServletRequest request) {
-        ThrowUils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
 
 
         //查询数据库
         Space oldSpace = spaceService.getById(id);
-        ThrowUils.throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR);
 
         //仅本人可以操作
         User loginUser = userService.getLoginUser(request);
@@ -219,7 +213,7 @@ public class SpaceController {
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<Space>> listSpaceByPage(@RequestBody SpaceQueryRequest spaceQueryRequest) {
         //参数不存在则不执行查询
-        ThrowUils.throwIf(spaceQueryRequest == null,
+        ThrowUtils.throwIf(spaceQueryRequest == null,
                 ErrorCode.PARAMS_ERROR, "分页查询参数错误");
 
         long current = spaceQueryRequest.getCurrent();
@@ -243,7 +237,7 @@ public class SpaceController {
         long current = spaceQueryRequest.getCurrent();
         long size = spaceQueryRequest.getPageSize();
         // 限制爬虫
-        ThrowUils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
 
         // 查询数据库
         Page<Space> spacePage = spaceService.page(new Page<>(current, size),
@@ -279,14 +273,14 @@ public class SpaceController {
         // 判断是否存在
         long id = spaceEditRequest.getId();
         Space oldSpace = spaceService.getById(id);
-        ThrowUils.throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR);
         // 仅本人或管理员可编辑
         if (!oldSpace.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
         // 操作数据库
         boolean result = spaceService.updateById(space);
-        ThrowUils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }
 

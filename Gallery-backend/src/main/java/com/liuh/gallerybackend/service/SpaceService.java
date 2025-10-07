@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.liuh.gallerybackend.common.BaseResponse;
 import com.liuh.gallerybackend.common.DeleteRequest;
+import com.liuh.gallerybackend.exception.BusinessException;
+import com.liuh.gallerybackend.exception.ErrorCode;
 import com.liuh.gallerybackend.model.dto.space.SpaceAddRequest;
 import com.liuh.gallerybackend.model.dto.space.SpaceQueryRequest;
 import com.liuh.gallerybackend.model.entity.Space;
@@ -70,4 +72,12 @@ public interface SpaceService extends IService<Space> {
      * @param space
      */
     void fillSpaceBySpaceLevel(Space space);
+    /**
+     * 空间权限校验
+     *
+     * @param loginUser
+     * @param space
+     */
+    public void checkSpaceAuth(User loginUser, Space space);
+
 }

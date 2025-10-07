@@ -16,7 +16,7 @@ import com.liuh.gallerybackend.common.ResultUtils;
 import com.liuh.gallerybackend.constant.UserConstant;
 import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
-import com.liuh.gallerybackend.exception.ThrowUils;
+import com.liuh.gallerybackend.exception.ThrowUtils;
 import com.liuh.gallerybackend.model.dto.picture.*;
 import com.liuh.gallerybackend.model.entity.Picture;
 import com.liuh.gallerybackend.model.entity.Space;
@@ -27,7 +27,6 @@ import com.liuh.gallerybackend.model.vo.PictureVO;
 import com.liuh.gallerybackend.service.PictureService;
 import com.liuh.gallerybackend.service.SpaceService;
 import com.liuh.gallerybackend.service.UserService;
-import com.qcloud.cos.model.ciModel.image.ImageSearchRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -39,7 +38,6 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -174,7 +172,7 @@ public class PictureController {
         //判断数据
         Long id = pictureUpdateRequest.getId();
         Picture byId = pictureService.getById(id);
-        ThrowUils.throwIf(byId == null, ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(byId == null, ErrorCode.NOT_FOUND_ERROR);
         //获取用户信息
         User loginUser = userService.getLoginUser(request);
         //添加审核参数
@@ -182,7 +180,7 @@ public class PictureController {
 
         //操作数据库
         boolean b = pictureService.updateById(picture);
-        ThrowUils.throwIf(b, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(b, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }
 
@@ -196,10 +194,10 @@ public class PictureController {
     @GetMapping("/get")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Picture> getPictureById(Long id, HttpServletRequest request) {
-        ThrowUils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         //查询数据库
         Picture byId = pictureService.getById(id);
-        ThrowUils.throwIf(byId == null, ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(byId == null, ErrorCode.NOT_FOUND_ERROR);
         return ResultUtils.success(byId);
 
     }
@@ -213,10 +211,10 @@ public class PictureController {
      */
     @GetMapping("/get/VO")
     public BaseResponse<PictureVO> getPictureVOById(Long id, HttpServletRequest request) {
-        ThrowUils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         //查询数据库
         Picture byId = pictureService.getById(id);
-        ThrowUils.throwIf(byId == null, ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(byId == null, ErrorCode.NOT_FOUND_ERROR);
         //效验权限
         //公共图片都可以访问, 私有图片只有本人可以访问
         if (!ObjUtil.isNull(byId.getSpaceId())) {
@@ -236,7 +234,7 @@ public class PictureController {
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<Picture>> listPictureByPage(@RequestBody PictureQueryRequest pictureQueryRequest) {
         //参数不存在则不执行查询
-        ThrowUils.throwIf(pictureQueryRequest == null,
+        ThrowUtils.throwIf(pictureQueryRequest == null,
                 ErrorCode.PARAMS_ERROR, "分页查询参数错误");
 
         long current = pictureQueryRequest.getCurrent();
@@ -260,7 +258,7 @@ public class PictureController {
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
         // 限制爬虫
-        ThrowUils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
 
         //空间权限效验
         Long spaceId = pictureQueryRequest.getSpaceId();
@@ -275,7 +273,7 @@ public class PictureController {
             User loginUser = userService.getLoginUser(request);
             Space space = spaceService.getById(spaceId);
             //判断空间是否存在
-            ThrowUils.throwIf(ObjUtil.isNull(space), ErrorCode.NOT_FOUND_ERROR);
+            ThrowUtils.throwIf(ObjUtil.isNull(space), ErrorCode.NOT_FOUND_ERROR);
             //判断权限
             //只有空间所有人可以访问
             if (!space.getUserId().equals(loginUser.getId())) {
@@ -304,7 +302,7 @@ public class PictureController {
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
         // 限制爬虫
-        ThrowUils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
         //普通用户默认只能看到审核通过的数据
         pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
 
@@ -367,7 +365,7 @@ public class PictureController {
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
         // 限制爬虫
-        ThrowUils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
         //普通用户默认只能看到审核通过的数据
         pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
 
@@ -421,7 +419,7 @@ public class PictureController {
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
         // 限制爬虫
-        ThrowUils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(size > 100, ErrorCode.PARAMS_ERROR);
         //普通用户默认只能看到审核通过的数据
         pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
 
@@ -508,7 +506,7 @@ public class PictureController {
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> doPictureReview(@RequestBody PictureReviewRequest pictureReviewRequest, HttpServletRequest request) {
         //参数不存在则不执行查询
-        ThrowUils.throwIf(pictureReviewRequest == null,
+        ThrowUtils.throwIf(pictureReviewRequest == null,
                 ErrorCode.PARAMS_ERROR, "审核图片参数错误");
 
         User loginUser = userService.getLoginUser(request);
@@ -528,7 +526,7 @@ public class PictureController {
     public BaseResponse<Integer> uploadPictureByBatch(@RequestBody PictureUploadByBatchRequest pictureUploadByBatchRequest,
                                                       HttpServletRequest request) {
         //参数不存在则不执行查询
-        ThrowUils.throwIf(pictureUploadByBatchRequest == null,
+        ThrowUtils.throwIf(pictureUploadByBatchRequest == null,
                 ErrorCode.PARAMS_ERROR, "审核图片参数错误");
 
         User loginUser = userService.getLoginUser(request);
@@ -550,18 +548,18 @@ public class PictureController {
             , HttpServletRequest request) {
 
         //参数不存在则不执行查询
-        ThrowUils.throwIf(searchPictureByPictureRequest == null,
+        ThrowUtils.throwIf(searchPictureByPictureRequest == null,
                 ErrorCode.PARAMS_ERROR);
 
         //实现以图搜图
         Long searchPictureId = searchPictureByPictureRequest.getPictureId();
         //图片id存在在图库中
-        ThrowUils.throwIf(searchPictureId == null
+        ThrowUtils.throwIf(searchPictureId == null
                 || searchPictureId <= 0, ErrorCode.PARAMS_ERROR);
         //查询图片
         Picture picture = pictureService.getById(searchPictureId);
         //图片不存在
-        ThrowUils.throwIf(picture == null, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(picture == null, ErrorCode.PARAMS_ERROR);
         //获取相似图片
         List<ImageSearchResult> imageSearchResults = ImageSearchApiFacade.searchImage(picture.getUrl());
         //返回相似图片
@@ -580,7 +578,7 @@ public class PictureController {
     public BaseResponse<List<PictureVO>> searchPictureByColor(@RequestBody SearchPictureByColorRequest searchPictureByColorRequest,
                                                               HttpServletRequest request) {
         //参数不存在则不执行查询
-        ThrowUils.throwIf(ObjUtil.isEmpty(searchPictureByColorRequest),
+        ThrowUtils.throwIf(ObjUtil.isEmpty(searchPictureByColorRequest),
                 ErrorCode.PARAMS_ERROR);
         User loginUser = userService.getLoginUser(request);
         //获取需要的参数并执行
@@ -596,7 +594,7 @@ public class PictureController {
             @RequestBody PictureEditByBatchRequest pictureEditByBatchRequest,
             HttpServletRequest request) {
         //判断是否为空
-        ThrowUils.throwIf(ObjUtil.isEmpty(pictureEditByBatchRequest),
+        ThrowUtils.throwIf(ObjUtil.isEmpty(pictureEditByBatchRequest),
                 ErrorCode.PARAMS_ERROR);
         //获取用户信息
         User loginUser = userService.getLoginUser(request);

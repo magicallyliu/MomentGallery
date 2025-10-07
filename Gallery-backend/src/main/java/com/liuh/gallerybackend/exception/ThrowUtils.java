@@ -11,7 +11,7 @@ package com.liuh.gallerybackend.exception;
 
 @SuppressWarnings("all")
 
-public class ThrowUils {
+public class ThrowUtils {
 
     /**
      * 判断条件成立抛出异常

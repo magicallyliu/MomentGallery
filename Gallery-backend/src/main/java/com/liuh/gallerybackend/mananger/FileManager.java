@@ -10,17 +10,13 @@ import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpStatus;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.http.Method;
-import com.liuh.gallerybackend.common.ResultUtils;
 import com.liuh.gallerybackend.config.CosClientConfig;
 import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
-import com.liuh.gallerybackend.exception.ThrowUils;
+import com.liuh.gallerybackend.exception.ThrowUtils;
 import com.liuh.gallerybackend.model.dto.file.UploadPictureResult;
-import com.qcloud.cos.model.COSObject;
-import com.qcloud.cos.model.GetObjectRequest;
 import com.qcloud.cos.model.PutObjectResult;
 import com.qcloud.cos.model.ciModel.persistence.ImageInfo;
-import com.qcloud.cos.model.ciModel.persistence.OriginalInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -212,7 +208,7 @@ public class FileManager {
      */
     private void validPicture(String fileUrl) {
         //1. 效验非空
-        ThrowUils.throwIf(StrUtil.isBlank(fileUrl), ErrorCode.PARAMS_ERROR, "文件地址为空");
+        ThrowUtils.throwIf(StrUtil.isBlank(fileUrl), ErrorCode.PARAMS_ERROR, "文件地址为空");
 
         //2. 效验 URL 格式
         //通过java自带的url 来辅助效验
@@ -224,7 +220,7 @@ public class FileManager {
 
         //3. 效验 URL 协议
         //效验前缀
-        ThrowUils.throwIf(!fileUrl.startsWith("http://") && !fileUrl.startsWith("https://"),
+        ThrowUtils.throwIf(!fileUrl.startsWith("http://") && !fileUrl.startsWith("https://"),
                 ErrorCode.PARAMS_ERROR, "仅支持 HTTP 或 HTTPS 协议的文件");
 
         //4. 发送 HEAD 请求验证文件信息是否存在
@@ -246,7 +242,7 @@ public class FileManager {
                 if (StrUtil.isNotBlank(contentType)) {
                     // 允许的图片类型
                     final List<String> ALLOW_CONTENT_TYPES = Arrays.asList("image/jpeg", "image/jpg", "image/png", "image/webp");
-                    ThrowUils.throwIf(!ALLOW_CONTENT_TYPES.contains(contentType.toLowerCase()),
+                    ThrowUtils.throwIf(!ALLOW_CONTENT_TYPES.contains(contentType.toLowerCase()),
                             ErrorCode.PARAMS_ERROR, "文件类型错误");
                 }
             }
@@ -258,7 +254,7 @@ public class FileManager {
                     //把字符串转换为Long类型
                     long size = Long.parseLong(contentLength);
                     final long ONE_M = 1024 * 1024;
-                    ThrowUils.throwIf(size > 2 * ONE_M, ErrorCode.PARAMS_ERROR, "上传文件大小不能超过 2MB");
+                    ThrowUtils.throwIf(size > 2 * ONE_M, ErrorCode.PARAMS_ERROR, "上传文件大小不能超过 2MB");
 
                 } catch (NumberFormatException e) {
                     //文件大小格式异常
@@ -279,17 +275,17 @@ public class FileManager {
      * @param multipartFile 文件
      */
     private void validPicture(MultipartFile multipartFile) {
-        ThrowUils.throwIf(multipartFile == null, ErrorCode.PARAMS_ERROR, "上传文件不能为空");
+        ThrowUtils.throwIf(multipartFile == null, ErrorCode.PARAMS_ERROR, "上传文件不能为空");
         //1. 效验文件大小
         long size = multipartFile.getSize();
         final long ONE_M = 1024 * 1024;
-        ThrowUils.throwIf(size > 2 * ONE_M, ErrorCode.PARAMS_ERROR, "上传文件大小不能超过 2MB");
+        ThrowUtils.throwIf(size > 2 * ONE_M, ErrorCode.PARAMS_ERROR, "上传文件大小不能超过 2MB");
 
         //2. 效验文件后缀
         String suffix = FileUtil.getSuffix(multipartFile.getOriginalFilename());
         //允许上传的文件后缀集合
         final List<String> ALLOW_FORMAT_LIST = Arrays.asList("jpeg", "png", "gif", "jpg", "jpe", "webp");
-        ThrowUils.throwIf(!ALLOW_FORMAT_LIST.contains(suffix),
+        ThrowUtils.throwIf(!ALLOW_FORMAT_LIST.contains(suffix),
                 ErrorCode.PARAMS_ERROR, "上传文件类型错误");
     }
 

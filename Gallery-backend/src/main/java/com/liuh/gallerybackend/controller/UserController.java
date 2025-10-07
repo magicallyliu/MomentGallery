@@ -9,7 +9,7 @@ import com.liuh.gallerybackend.common.ResultUtils;
 import com.liuh.gallerybackend.constant.UserConstant;
 import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
-import com.liuh.gallerybackend.exception.ThrowUils;
+import com.liuh.gallerybackend.exception.ThrowUtils;
 import com.liuh.gallerybackend.model.dto.space.SpaceAddRequest;
 import com.liuh.gallerybackend.model.dto.user.*;
 import com.liuh.gallerybackend.model.entity.User;
@@ -48,7 +48,7 @@ public class UserController {
      */
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest, HttpServletRequest request) {
-        ThrowUils.throwIf(userRegisterRequest == null,
+        ThrowUtils.throwIf(userRegisterRequest == null,
                 ErrorCode.PARAMS_ERROR, "获取用户注册信息失败");
 
         String userPassword = userRegisterRequest.getUserPassword();
@@ -73,7 +73,7 @@ public class UserController {
      */
     @PostMapping("/login")
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
-        ThrowUils.throwIf(userLoginRequest == null,
+        ThrowUtils.throwIf(userLoginRequest == null,
                 ErrorCode.PARAMS_ERROR, "获取用户注册信息失败");
 
         String userAccount = userLoginRequest.getUserAccount();
@@ -107,7 +107,7 @@ public class UserController {
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest) {
-        ThrowUils.throwIf(userAddRequest == null,
+        ThrowUtils.throwIf(userAddRequest == null,
                 ErrorCode.PARAMS_ERROR, "参数为空");
 
         //转换User
@@ -131,7 +131,7 @@ public class UserController {
         //插入数据
         boolean result = userService.save(user);
         //判断是否成功
-        ThrowUils.throwIf(!result, ErrorCode.OPERATION_ERROR, "用户创建失败");
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "用户创建失败");
         return ResultUtils.success(user.getId());
     }
 
@@ -141,11 +141,11 @@ public class UserController {
     @PostMapping("/get")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<User> getUserId(Long userId) {
-        ThrowUils.throwIf(userId <= 0, ErrorCode.PARAMS_ERROR, "获取id无参数");
+        ThrowUtils.throwIf(userId <= 0, ErrorCode.PARAMS_ERROR, "获取id无参数");
 
         //获取用户参数
         User user = userService.getById(userId);
-        ThrowUils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
         return ResultUtils.success(user);
     }
 
@@ -204,7 +204,7 @@ public class UserController {
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<UserVO>> listUserByPageVO(@RequestBody UserQueryRequest userQueryRequest) {
         //参数不存在则不执行查询
-        ThrowUils.throwIf(userQueryRequest == null,
+        ThrowUtils.throwIf(userQueryRequest == null,
                 ErrorCode.PARAMS_ERROR, "分页查询参数错误");
 
         //获取查询限制 -- 页号, 单页数量

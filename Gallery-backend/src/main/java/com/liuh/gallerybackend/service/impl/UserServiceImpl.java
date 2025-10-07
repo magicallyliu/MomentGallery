@@ -7,25 +7,21 @@ import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.liuh.gallerybackend.common.PageRequest;
 import com.liuh.gallerybackend.constant.UserConstant;
 import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
-import com.liuh.gallerybackend.exception.ThrowUils;
+import com.liuh.gallerybackend.exception.ThrowUtils;
 import com.liuh.gallerybackend.mapper.UserMapper;
-import com.liuh.gallerybackend.model.dto.space.SpaceAddRequest;
 import com.liuh.gallerybackend.model.dto.user.UserQueryRequest;
 import com.liuh.gallerybackend.model.entity.User;
 import com.liuh.gallerybackend.model.enums.UserRoleEnum;
 import com.liuh.gallerybackend.model.vo.LoginUserVO;
 import com.liuh.gallerybackend.model.vo.UserVO;
-import com.liuh.gallerybackend.service.SpaceService;
 import com.liuh.gallerybackend.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
-import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
@@ -79,13 +75,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         */
         //1. 效验
         // 参数不能为空
-        ThrowUils.throwIf(StrUtil.hasBlank(userAccount, userPassword),
+        ThrowUtils.throwIf(StrUtil.hasBlank(userAccount, userPassword),
                 ErrorCode.PARAMS_ERROR, "参数为空");
         //账号长度不得低于4位
-        ThrowUils.throwIf(userAccount.length() < 4,
+        ThrowUtils.throwIf(userAccount.length() < 4,
                 ErrorCode.PARAMS_ERROR, "用户账户格式错误");
         //密码不得低于8位
-        ThrowUils.throwIf(userPassword.length() < 8,
+        ThrowUtils.throwIf(userPassword.length() < 8,
                 ErrorCode.PARAMS_ERROR, "用户密码格式错误");
 
         //2. 对前端传递的密码进行加密
@@ -159,16 +155,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         // 1. 效验参数,
         // 参数不能为空
-        ThrowUils.throwIf(StrUtil.hasBlank(userAccount, userPassword, checkPassword),
+        ThrowUtils.throwIf(StrUtil.hasBlank(userAccount, userPassword, checkPassword),
                 ErrorCode.PARAMS_ERROR, "参数为空");
         //账号长度不得低于4位
-        ThrowUils.throwIf(userAccount.length() < 4,
+        ThrowUtils.throwIf(userAccount.length() < 4,
                 ErrorCode.PARAMS_ERROR, "用户账户过短");
         //密码不得低于8位
-        ThrowUils.throwIf(userPassword.length() < 8 || checkPassword.length() < 8,
+        ThrowUtils.throwIf(userPassword.length() < 8 || checkPassword.length() < 8,
                 ErrorCode.PARAMS_ERROR, "用户密码过短");
         //密码和确认密码需要一致
-        ThrowUils.throwIf(!checkPassword.equals(userPassword),
+        ThrowUtils.throwIf(!checkPassword.equals(userPassword),
                 ErrorCode.PARAMS_ERROR, "两次输入密码不一致");
 
         // 2. 检查用户账户是否和数据库中已有的重复
@@ -178,7 +174,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         long count = this.baseMapper.selectCount(queryWrapper);
         //判断是否有的条件是查询出的条数
-        ThrowUils.throwIf(count >= 1,
+        ThrowUtils.throwIf(count >= 1,
                 ErrorCode.PARAMS_ERROR, "用户已存在");
 
         // 3. 密码要加密
@@ -194,7 +190,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         boolean saveResult = this.save(user);
         //为 true 代表插入数据库成功
-        ThrowUils.throwIf(!saveResult,
+        ThrowUtils.throwIf(!saveResult,
                 ErrorCode.SYSTEM_ERROR, "插入数据库失败");
 
 

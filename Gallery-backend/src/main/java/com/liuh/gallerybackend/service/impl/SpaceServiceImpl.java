@@ -7,22 +7,16 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.liuh.gallerybackend.common.BaseResponse;
-import com.liuh.gallerybackend.common.DeleteRequest;
-import com.liuh.gallerybackend.common.PageRequest;
 import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
-import com.liuh.gallerybackend.exception.ThrowUils;
+import com.liuh.gallerybackend.exception.ThrowUtils;
 import com.liuh.gallerybackend.model.dto.space.SpaceAddRequest;
 import com.liuh.gallerybackend.model.dto.space.SpaceQueryRequest;
-import com.liuh.gallerybackend.model.entity.Picture;
 import com.liuh.gallerybackend.model.entity.Space;
 import com.liuh.gallerybackend.model.entity.User;
 import com.liuh.gallerybackend.model.enums.SpaceLevelEnum;
 import com.liuh.gallerybackend.model.vo.SpaceVO;
-import com.liuh.gallerybackend.model.vo.SpaceVO;
 import com.liuh.gallerybackend.model.vo.UserVO;
-import com.liuh.gallerybackend.service.PictureService;
 import com.liuh.gallerybackend.service.SpaceService;
 import com.liuh.gallerybackend.mapper.SpaceMapper;
 import com.liuh.gallerybackend.service.UserService;
@@ -130,12 +124,12 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                         .eq(Space::getUserId, loginUserId)
                         .exists();
                 // 如果已有空间, 就不能再创建
-                ThrowUils.throwIf(exists, ErrorCode.PARAMS_ERROR, "用户只能创建一个私有空间");
+                ThrowUtils.throwIf(exists, ErrorCode.PARAMS_ERROR, "用户只能创建一个私有空间");
 
                 //TODO 5. 插入到数据库
                 boolean result = this.save(space);
                 //TODO 6. 返回结果
-                ThrowUils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "创建空间失败");
+                ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "创建空间失败");
                 //返回新写入的id
                 return space.getId();
             } finally {
@@ -152,7 +146,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
 
     @Override
     public void validSpace(Space space, boolean isAdd) {
-        ThrowUils.throwIf(space == null, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(space == null, ErrorCode.PARAMS_ERROR);
         //从 对象中取值
         //需要效验空间的空间名称, 空间级别
         String spaceName = space.getSpaceName();
@@ -164,14 +158,14 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         //创建时效验
         if (isAdd) {
             //名称不能为空
-            ThrowUils.throwIf(StrUtil.isBlank(spaceName), ErrorCode.PARAMS_ERROR, "空间名称不能为空");
-            ThrowUils.throwIf(ObjUtil.isNull(spaceLevel), ErrorCode.PARAMS_ERROR, "空间级别不能为空");
+            ThrowUtils.throwIf(StrUtil.isBlank(spaceName), ErrorCode.PARAMS_ERROR, "空间名称不能为空");
+            ThrowUtils.throwIf(ObjUtil.isNull(spaceLevel), ErrorCode.PARAMS_ERROR, "空间级别不能为空");
         }
 
         //空间名称存在, 并且不能大于30
-        ThrowUils.throwIf(StrUtil.isNotBlank(spaceName) && spaceName.length() > 30, ErrorCode.PARAMS_ERROR, "空间名称不能超过30个字符");
+        ThrowUtils.throwIf(StrUtil.isNotBlank(spaceName) && spaceName.length() > 30, ErrorCode.PARAMS_ERROR, "空间名称不能超过30个字符");
         //空间级别不能为空, 且级别存在
-        ThrowUils.throwIf(!ObjUtil.isNull(spaceLevel) && ObjUtil.isNull(enumByValue), ErrorCode.PARAMS_ERROR, "空间级别错误");
+        ThrowUtils.throwIf(!ObjUtil.isNull(spaceLevel) && ObjUtil.isNull(enumByValue), ErrorCode.PARAMS_ERROR, "空间级别错误");
     }
 
     @Override
@@ -259,6 +253,21 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
 
         }
     }
+
+    /**
+     * 空间权限校验
+     *
+     * @param loginUser
+     * @param space
+     */
+    @Override
+    public void checkSpaceAuth(User loginUser, Space space) {
+        // 仅本人或管理员可访问
+        if (!space.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+    }
+
 
 }
 
