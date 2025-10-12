@@ -86,7 +86,7 @@
 
 <script setup lang="ts">
 import PictureUpload from '@/components/PictureUpload.vue'
-import { computed, h, onMounted, reactive, ref } from 'vue'
+import { computed, h, onMounted, reactive, ref, watchEffect } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   editPictureUsingPost,
@@ -249,6 +249,9 @@ const fetchSpace = async () => {
   }
 }
 
+watchEffect(() => {
+  fetchSpace()
+})
 
 </script>
 
