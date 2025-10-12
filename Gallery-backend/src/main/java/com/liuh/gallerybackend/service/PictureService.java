@@ -4,6 +4,7 @@ import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.liuh.gallerybackend.api.aliyunAi.model.CreateOutPaintingTaskResponse;
 import com.liuh.gallerybackend.common.BaseResponse;
 import com.liuh.gallerybackend.common.DeleteRequest;
 import com.liuh.gallerybackend.exception.BusinessException;
@@ -142,6 +143,14 @@ public interface PictureService extends IService<Picture> {
      * @param loginUser
      */
     void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser);
+
+    /**
+     * 创建AI扩图任务
+     * @param createPictureOutPaintingTaskRequest
+     * @param loginUser
+     * @return
+     */
+    CreateOutPaintingTaskResponse createPictureOutPaintingTask(CreatePictureOutPaintingTaskRequest createPictureOutPaintingTaskRequest, User loginUser);
 //    /**
 //     * 分页获取图片列表 -- 二级缓存版本
 //     * @param pictureQueryRequest

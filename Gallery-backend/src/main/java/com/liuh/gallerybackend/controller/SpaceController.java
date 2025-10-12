@@ -12,6 +12,7 @@ import com.liuh.gallerybackend.constant.UserConstant;
 import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
 import com.liuh.gallerybackend.exception.ThrowUtils;
+import com.liuh.gallerybackend.mananger.auth.SpaceUserAuthManger;
 import com.liuh.gallerybackend.model.dto.space.*;
 import com.liuh.gallerybackend.model.entity.Picture;
 import com.liuh.gallerybackend.model.entity.Space;
@@ -55,6 +56,9 @@ public class SpaceController {
 
     @Resource
     private PictureService pictureService;
+
+    @Resource
+    private SpaceUserAuthManger spaceUserAuthManger;
 
     @Resource
     private TransactionTemplate transactionTemplate;
@@ -194,13 +198,19 @@ public class SpaceController {
         //查询数据库
         Space oldSpace = spaceService.getById(id);
         ThrowUtils.throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR);
-
+        SpaceVO spaceVO = spaceService.getSpaceVO(oldSpace, request);
         //仅本人可以操作
-        User loginUser = userService.getLoginUser(request);
-        if (!oldSpace.getUserId().equals(loginUser.getId())) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
-        return ResultUtils.success(spaceService.getSpaceVO(oldSpace, request));
+        //更改使用ta-token
+//        User loginUser = userService.getLoginUser(request);
+//        if (!oldSpace.getUserId().equals(loginUser.getId())) {
+//            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+//        }
+
+        //获取权限列表.
+        List<String> permissionList = spaceUserAuthManger.getPermissionList(oldSpace, userService.getLoginUser(request));
+        //将权限列表加入
+        spaceVO.setPermissionList(permissionList);
+        return ResultUtils.success(spaceVO);
     }
 
     /**

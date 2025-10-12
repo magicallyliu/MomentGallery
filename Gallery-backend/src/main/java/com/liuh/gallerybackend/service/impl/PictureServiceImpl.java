@@ -10,6 +10,9 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.liuh.gallerybackend.api.aliyunAi.AliYunApi;
+import com.liuh.gallerybackend.api.aliyunAi.model.CreateOutPaintingTaskRequest;
+import com.liuh.gallerybackend.api.aliyunAi.model.CreateOutPaintingTaskResponse;
 import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
 import com.liuh.gallerybackend.exception.ThrowUtils;
@@ -31,6 +34,7 @@ import com.liuh.gallerybackend.service.PictureService;
 import com.liuh.gallerybackend.service.SpaceService;
 import com.liuh.gallerybackend.service.UserService;
 import com.liuh.gallerybackend.utils.ColorSimilarUtils;
+import com.liuh.gallerybackend.utils.ColorTransformUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -90,6 +94,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     @Resource
     private UrlPictureUpload urlPictureUpload;
 
+    @Resource
+    private AliYunApi  aliYunApi;
     /**
      * 编程式事务
      */
@@ -113,8 +119,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             Space space = spaceService.getById(spaceId);
             ThrowUtils.throwIf(ObjUtil.isNull(space), ErrorCode.NOT_FOUND_ERROR, "空间不存在");
             ;
-            //判断空间所有人
-            ThrowUtils.throwIf(!space.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "没有权限");
+            //改为sa-token
+//            //判断空间所有人
+//            ThrowUtils.throwIf(!space.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "没有权限");
 
             //判断空间是否有额度
             if (space.getTotalCount() >= space.getMaxCount()) {
@@ -136,10 +143,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             Picture oldPicture = this.getById(pictureId);
             ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
 
-            //只有管理员和本人可以编辑图片
-            if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-            }
+            //改为sa-token
+//            //只有管理员和本人可以编辑图片
+//            if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+//                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+//            }
 
             //效验上传空间是否一致
             //如果上传到公共图库, 则不需要验证
@@ -190,7 +198,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         picture.setUserId(loginUser.getId());
 
         //上传主色调前, 将其转化为标准格式
-        picture.setPicColor(uploadPictureResult.getPicColor());
+        picture.setPicColor(ColorTransformUtils.expandHexColor(uploadPictureResult.getPicColor()));
         //添加审核参数
         this.fillReviewParams(picture, loginUser);
 
@@ -201,8 +209,6 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             // 如果是更新, 需要补充 id和编辑时间
             picture.setId(pictureId);
             picture.setEditTime(new Date());
-            //清理图片资源
-            this.clearPictureFile(picture);
         }
         //开启事务
         Long finalSpaceId = spaceId;
@@ -220,6 +226,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                         .update();
                 ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "更新额度失败");
             }
+            //清理图片资源
+            this.clearPictureFile(picture);
             //返回结果
             return b;
         });
@@ -246,7 +254,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 //            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
 //        }
         //方法二
-        this.checkPictureAuth(loginUser, oldPicture);
+        //已经更改为注解鉴权
+//        this.checkPictureAuth(loginUser, oldPicture);
 
 
         //在数据库中删除该图片
@@ -571,7 +580,12 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
     }
 
-
+    /**
+     * 更改为使用Sa-Token进行权限校验
+     * @param loginUser
+     * @param picture
+     */
+    @Deprecated
     @Override
     public void checkPictureAuth(User loginUser, Picture picture) {
         Long spaceId = picture.getSpaceId();
@@ -610,7 +624,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 //            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
 //        }
         //使用新效验方法
-        this.checkPictureAuth(loginUser, oldPicture);
+        //再次更改为注解鉴权
+//        this.checkPictureAuth(loginUser, oldPicture);
         // 操作数据库
         boolean result = this.updateById(picture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -749,6 +764,26 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             }
         }
     }
+
+    @Override
+    public CreateOutPaintingTaskResponse createPictureOutPaintingTask(CreatePictureOutPaintingTaskRequest createPictureOutPaintingTaskRequest, User loginUser) {
+        // 获取图片信息
+        Long pictureId = createPictureOutPaintingTaskRequest.getPictureId();
+        Picture picture = Optional.ofNullable(this.getById(pictureId))
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND_ERROR));
+        // 权限校验
+        //已经更改为注解鉴权
+//        checkPictureAuth(loginUser, picture);
+        // 构造请求参数
+        CreateOutPaintingTaskRequest taskRequest = new CreateOutPaintingTaskRequest();
+        CreateOutPaintingTaskRequest.Input input = new CreateOutPaintingTaskRequest.Input();
+        input.setImageUrl(picture.getUrl());
+        taskRequest.setInput(input);
+        BeanUtil.copyProperties(createPictureOutPaintingTaskRequest, taskRequest);
+        // 创建任务
+        return aliYunApi.createOutPaintingTask(taskRequest);
+    }
+
 //
 //    @Override
 //    public Page<PictureVO> listPictureVOPageWithCache(PictureQueryRequest pictureQueryRequest) {

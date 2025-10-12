@@ -47,20 +47,21 @@ import {
 } from '@/api/spaceController.ts'
 import { useRoute, useRouter } from 'vue-router'
 import { SPACE_LEVEL_OPTIONS, SPACE_TYPE_ENUM, SPACE_TYPE_MAP} from '@/constants/space.ts'
-import { formatSize } from '../utils'
+import { formatSize } from '@/utils'
 
 const space = ref<API.SpaceVO>()
 const spaceForm = reactive<API.SpaceAddRequest | API.SpaceEditRequest>({})
 const loading = ref(false)
 
 const route = useRoute()
+
+
 // 空间类别，默认为私有空间
 const spaceType = computed(() => {
   if (route.query?.type) {
     return Number(route.query.type)
-  } else {
-    return SPACE_TYPE_ENUM.PRIVATE
   }
+  return SPACE_TYPE_ENUM.PRIVATE
 })
 
 const spaceLevelList = ref<API.SpaceLevel[]>([])
@@ -132,6 +133,7 @@ const getOldSpace = async () => {
     }
   }
 }
+
 
 onMounted(() => {
   getOldSpace()

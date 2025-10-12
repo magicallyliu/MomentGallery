@@ -11,6 +11,7 @@ import com.liuh.gallerybackend.constant.UserConstant;
 import com.liuh.gallerybackend.exception.BusinessException;
 import com.liuh.gallerybackend.exception.ErrorCode;
 import com.liuh.gallerybackend.exception.ThrowUtils;
+import com.liuh.gallerybackend.mananger.auth.StpKit;
 import com.liuh.gallerybackend.mapper.UserMapper;
 import com.liuh.gallerybackend.model.dto.user.UserQueryRequest;
 import com.liuh.gallerybackend.model.entity.User;
@@ -36,6 +37,12 @@ import java.util.stream.Collectors;
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         implements UserService {
+
+    private final StpKit stpKit;
+
+    public UserServiceImpl(StpKit stpKit) {
+        this.stpKit = stpKit;
+    }
 
     /**
      * 用户注销
@@ -102,6 +109,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         //4. 记录用户的登录状态
         request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, user);
+        //保存用户空间登录信息, 使用 Sa-Token
+        //用户空间的权限调用
+        StpKit.SPACE.login(user.getId());
+        //将用户信息存入
+        StpKit.SPACE.getSession().set(UserConstant.USER_LOGIN_STATE, user);
         return this.getLoginUserVO(user);
     }
 

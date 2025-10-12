@@ -1,5 +1,7 @@
 package com.liuh.gallerybackend.exception;
 
+import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
 import com.liuh.gallerybackend.common.BaseResponse;
 import com.liuh.gallerybackend.common.ResultUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -43,4 +45,27 @@ public class GlobalExceptionHandler {
         log.error("发生运行异常: ", e);
         return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "系统运行异常");
     }
+
+    /**
+     * 用于捕获sa-token的未登录异常
+     * @param e
+     * @return
+     */
+    @ExceptionHandler(NotLoginException.class)
+    public BaseResponse<?> notLoginException(NotLoginException e) {
+        log.error("NotLoginException", e);
+        return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, e.getMessage());
+    }
+
+    /**
+     *  用于捕获sa-token的未授权异常
+     * @param e
+     * @return
+     */
+    @ExceptionHandler(NotPermissionException.class)
+    public BaseResponse<?> notPermissionExceptionHandler(NotPermissionException e) {
+        log.error("NotPermissionException", e);
+        return ResultUtils.error(ErrorCode.NO_AUTH_ERROR, e.getMessage());
+    }
+
 }
