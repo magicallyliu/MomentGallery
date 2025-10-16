@@ -197,8 +197,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         user.setUserAccount(userAccount);
         user.setUserPassword(encryptPassword);
         //设置用户的默认名称、用户角色
-        user.setUserName("无名");
+        user.setUserName(userAccount);
         user.setUserRole(UserRoleEnum.USER.getValue());
+
+        //用户的默认头像
+        user.setUserAvatar("https://moment-gallery-1353804205.cos.ap-guangzhou.myqcloud.com/public/1920102552364191745/2025-10-16_swrpcoFJtNfeGvqg.webp");
 
         boolean saveResult = this.save(user);
         //为 true 代表插入数据库成功

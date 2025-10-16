@@ -1,3 +1,4 @@
+
 // 空间级别枚举
 export const SPACE_LEVEL_ENUM = {
   COMMON: 0,

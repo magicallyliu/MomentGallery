@@ -29,13 +29,12 @@
           <a-image :src="record.userAvatar" :width="50" />
         </template>
         <!--        定义用户类别类-->
-        <template v-else-if="column.dataIndex === 'userRole'">
-          <div v-if="record.userRole === 'admin'">
-            <a-tag color="green">管理员</a-tag>
-          </div>
-          <div v-else>
-            <a-tag color="blue">普通用户</a-tag>
-          </div>
+        <template v-if="column.dataIndex === 'userRole'">
+          <a-select
+            v-model:value="record.userRole"
+            :options="USER_ROLE_OPTIONS"
+            @change="(value) => editUserRole(value, record)"
+          />
         </template>
         <!--        定义时间-->
         <template v-if="column.dataIndex === 'createTime'">
@@ -52,9 +51,10 @@
 <script lang="ts" setup>
 import { SmileOutlined, DownOutlined } from '@ant-design/icons-vue'
 import { computed, onMounted, reactive, ref } from 'vue'
-import { deleteUserUsingPost, listUserByPageVoUsingPost } from '@/api/userController.ts'
+import { deleteUserUsingPost, listUserByPageVoUsingPost, updateUserUsingPost } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
+import { USER_ROLE_OPTIONS } from '@/constants/user.ts'
 // 列
 const columns = [
   {
@@ -164,4 +164,17 @@ const doSearch = () => {
 onMounted(() => {
   fetchData()
 })
+// 编辑成员角色
+const editUserRole = async (value, record) => {
+  const res = await updateUserUsingPost({
+    id: record.id,
+    userRole: value,
+  })
+  if (res.data.code === 20001) {
+    message.success('修改成功')
+  } else {
+    message.error('修改失败，' + res.data.message)
+  }
+}
+
 </script>

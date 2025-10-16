@@ -180,7 +180,6 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.liuh.gallerybackend.GalleryBackendApplication</mainClass>
-                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>

@@ -1,13 +1,13 @@
 import axios from 'axios'
 import { message } from 'ant-design-vue'
 
-//创建 Axios 实例
+// 区分开发和生产环境
+const DEV_BASE_URL = "http://localhost:8982";
+const PROD_BASE_URL = "http://119.91.37.107";
+// 创建 Axios 实例
 const myAxios = axios.create({
-  // 后端需要请求的地址
-  baseURL: 'http://localhost:8982',
-  // 最大请求时间
-  timeout: 60000,
-  // 是否要携带 登录凭证
+  baseURL: DEV_BASE_URL,
+  timeout: 10000,
   withCredentials: true,
 });
 

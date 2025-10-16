@@ -1,3 +1,4 @@
+
 <template>
   <div class="batch-edit-picture-modal">
     <a-modal v-model:visible="visible" title="批量编辑图片" :footer="false" @cancel="closeModal">
