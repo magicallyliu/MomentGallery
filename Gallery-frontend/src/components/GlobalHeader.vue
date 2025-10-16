@@ -37,6 +37,12 @@
               <template #overlay>
                 <a-menu>
                   <a-menu-item>
+                    <router-link to="/user/my_updateUser">
+                      <UserOutlined />
+                      修改信息
+                    </router-link>
+                  </a-menu-item>
+                  <a-menu-item>
                     <router-link to="/my_space">
                       <UserOutlined />
                       我的空间

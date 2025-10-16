@@ -15,6 +15,7 @@ import SpaceDetailPage from '@/pages/SpaceDetailPage.vue'
 import SearchPicturePage from '@/pages/SearchPicturePage.vue'
 import SpaceAnalyzePage from '@/pages/SpaceAnalyzePage.vue'
 import SpaceUserManagePage from '@/pages/admin/SpaceUserManagePage.vue'
+import UserUpdatePage from '@/pages/user/UserUpdatePage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -66,7 +67,11 @@ const router = createRouter({
       component: SpaceUserManagePage,
       props: true,
     },
-
+    {
+      path: '/user/my_updateUser',
+      name: '修改用户信息',
+      component: UserUpdatePage,
+    },
     {
       path: '/search_picture',
       name: '图片搜索',

@@ -1,4 +1,4 @@
-package com.liuh.gallerybackend.model.dto.user;
+package com.liuh.gallerybackend.model.vo;
 
 import lombok.Data;
 
@@ -15,7 +15,7 @@ import java.io.Serializable;
 
 @SuppressWarnings("all")
 @Data
-public class UserUpdateRequest implements Serializable {
+public class UserUpdateRequestVO implements Serializable {
 
     /**
      * id

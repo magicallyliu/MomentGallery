@@ -134,3 +134,18 @@ export async function updateUserUsingPost(
     ...(options || {}),
   })
 }
+
+/** updateUserVO POST /api/user/update/VO */
+export async function updateUserVoUsingPost(
+  body: API.UserUpdateRequestVO,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean_>('/api/user/update/VO', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}

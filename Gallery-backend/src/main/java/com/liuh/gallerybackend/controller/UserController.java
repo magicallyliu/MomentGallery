@@ -14,6 +14,7 @@ import com.liuh.gallerybackend.model.dto.space.SpaceAddRequest;
 import com.liuh.gallerybackend.model.dto.user.*;
 import com.liuh.gallerybackend.model.entity.User;
 import com.liuh.gallerybackend.model.vo.LoginUserVO;
+import com.liuh.gallerybackend.model.vo.UserUpdateRequestVO;
 import com.liuh.gallerybackend.model.vo.UserVO;
 import com.liuh.gallerybackend.service.SpaceService;
 import com.liuh.gallerybackend.service.UserService;
@@ -177,6 +178,24 @@ public class UserController {
         return ResultUtils.success(b);
     }
 
+    /**
+     * 用户更新
+     */
+    @PostMapping("/update/VO")
+    public BaseResponse<Boolean> updateUserVO(@RequestBody UserUpdateRequestVO userUpdateRequestVO) {
+        //参数不存在 和 参数错误则不执行删除
+        if (userUpdateRequestVO == null || userUpdateRequestVO.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户更新参数错误");
+        }
+
+        //转化为用户表
+        User user = new User();
+        BeanUtil.copyProperties(userUpdateRequestVO, user);
+
+        //在数据库更新
+        boolean b = userService.updateById(user);
+        return ResultUtils.success(b);
+    }
     /**
      * 用户更新  --  面向管理员
      */
