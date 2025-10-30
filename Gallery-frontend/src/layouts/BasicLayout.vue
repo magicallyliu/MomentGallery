@@ -1,15 +1,18 @@
 <template>
   <div id="basicLayout">
     <a-layout style="min-height: 100vh">
+
       <a-layout-header class="header">
         <GlobalHeader />
       </a-layout-header>
+
       <a-layout>
         <GlobalSider class="sider" />
         <a-layout-content class="content">
           <router-view />
         </a-layout-content>
       </a-layout>
+
       <a-layout-footer class="footer">
         © 2025 幻化.All rights reserved
       </a-layout-footer>

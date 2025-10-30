@@ -212,7 +212,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
         //开启事务
         Long finalSpaceId = spaceId;
-        transactionTemplate.execute(status -> {
+        Boolean execute = transactionTemplate.execute(status -> {
             //插入数据
             boolean b = this.saveOrUpdate(picture);
             //如果数据未插入, 则不更新用户空间额度
