@@ -28,11 +28,11 @@
 
 1）能够让用户开通团队空间，使团队成员可以共享图片并实时编辑图片。
 
-![团队空间](J:/Project/PlanetProject/test-git-project/!%255B%25E5%25B1%258F%25E5%25B9%2595%25E6%2588%25AA%25E5%259B%25BE%25202025-10-30%2520195603.png%255D(https:/github.com/magicallyliu/test-git-project/blob/master/MomentGallery/%25E5%25B1%258F%25E5%25B9%2595%25E6%2588%25AA%25E5%259B%25BE%25202025-10-30%2520195603.png)
+![团队空间](![屏幕截图 2025-10-30 195603.png](https://github.com/magicallyliu/test-git-project/blob/master/MomentGallery/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202025-10-30%20195603.png?raw=true))
 
 2）管理员可以邀请成员进入团队空间，并为其赋予不同的角色权限。
 
-![团队空间成员邀请](J:/Project/PlanetProject/test-git-project/!%255B%25E5%25B1%258F%25E5%25B9%2595%25E6%2588%25AA%25E5%259B%25BE%25202025-10-30%2520200331.png%255D(https:/github.com/magicallyliu/test-git-project/blob/master/MomentGallery/%25E5%25B1%258F%25E5%25B9%2595%25E6%2588%25AA%25E5%259B%25BE%25202025-10-30%2520200331.png)
+![团队空间成员邀请](![屏幕截图 2025-10-30 200331.png](https://github.com/magicallyliu/test-git-project/blob/master/MomentGallery/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202025-10-30%20200331.png?raw=true))
 
 #### 四、重点功能
 
@@ -63,3 +63,6 @@
 为团队空间提供了协调编辑功能，能弄让团队成员同时编辑图片时，只有一位成员能够编辑，其他成员实时查看编辑效果和操作提示
 
 ![协调编辑](https://github.com/magicallyliu/test-git-project/blob/master/MomentGallery/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202025-10-30%20202606.png?raw=true)
+
+
+
