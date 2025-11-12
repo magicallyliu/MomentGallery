@@ -54,11 +54,11 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
 //    @Resource
 //    @Lazy
 //    private DynamicShardingManager dynamicShardingManager;
-    /**
-     * 编程事务管理器
-     */
-    @Resource
-    private TransactionTemplate transactionTemplate;
+//    /**
+//     * 编程事务管理器
+//     */
+//    @Resource
+//    private TransactionTemplate transactionTemplate;
     /**
      * 空间锁, 用于控制同一个用户只能创建一个私有空间
      */
