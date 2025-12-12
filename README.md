@@ -28,11 +28,11 @@
 
 1）能够让用户开通团队空间，使团队成员可以共享图片并实时编辑图片。
 
-![团队空间](![屏幕截图 2025-10-30 195603.png](https://github.com/magicallyliu/test-git-project/blob/master/MomentGallery/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202025-10-30%20195603.png?raw=true))
+![团队空间](https://github.com/magicallyliu/test-git-project/blob/master/MomentGallery/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202025-10-30%20195603.png?raw=true)
 
 2）管理员可以邀请成员进入团队空间，并为其赋予不同的角色权限。
 
-![团队空间成员邀请](![屏幕截图 2025-10-30 200331.png](https://github.com/magicallyliu/test-git-project/blob/master/MomentGallery/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202025-10-30%20200331.png?raw=true))
+![团队空间成员邀请](https://github.com/magicallyliu/test-git-project/blob/master/MomentGallery/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202025-10-30%20200331.png?raw=true)
 
 #### 四、重点功能
 

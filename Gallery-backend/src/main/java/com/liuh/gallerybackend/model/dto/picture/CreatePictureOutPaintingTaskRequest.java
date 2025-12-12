@@ -14,7 +14,7 @@ import lombok.Data;
 
 @SuppressWarnings("all")
 @Data
-public class CreatePictureOutPaintingTaskRequest {
+public class  CreatePictureOutPaintingTaskRequest {
 
     /**
      * 图片id
